@@ -40,13 +40,14 @@ jobs:
       - name: Aggiorna il catalogo TCGdex (il lunedì o se manca)
         run: |
           if [ "$(date -u +%u)" = "1" ] || [ ! -f dati/tcgdex/pk_tcgdex.json ]; then
-            mkdir -p /tmp/tcgdex && cd /tmp/tcgdex
-            curl -sSfL -o db.zip https://codeload.github.com/tcgdex/cards-database/zip/refs/heads/master \
+            mkdir -p /tmp/tcgdex
+            ( cd /tmp/tcgdex \
+              && curl -sSfL -o db.zip https://codeload.github.com/tcgdex/cards-database/zip/refs/heads/master \
               && unzip -q db.zip \
-              && python3 -I "$GITHUB_WORKSPACE/scripts/tcgdex_map.py" /tmp/tcgdex/cards-database-master "$GITHUB_WORKSPACE/dati/tcgdex/pk_tcgdex.json" \
+              && python3 -I "$GITHUB_WORKSPACE/scripts/tcgdex_map.py" /tmp/tcgdex/cards-database-master "$GITHUB_WORKSPACE/dati/tcgdex/pk_tcgdex.json" ) \
               || echo "TCGdex non raggiungibile: uso la mappa precedente"
           fi
-          [ -f dati/tcgdex/pk_tcgdex.json ] || cp data-src/pk_tcgdex.json dati/tcgdex/
+          [ -f "$GITHUB_WORKSPACE/dati/tcgdex/pk_tcgdex.json" ] || cp "$GITHUB_WORKSPACE/data-src/pk_tcgdex.json" "$GITHUB_WORKSPACE/dati/tcgdex/"
 
       - name: Scarica i prezzi Cardmarket e aggiorna lo storico
         run: python3 scripts/build_data.py --out _site/data --history dati/storico --tcgdex dati/tcgdex/pk_tcgdex.json
