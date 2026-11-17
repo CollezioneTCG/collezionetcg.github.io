@@ -64,6 +64,27 @@ def build_game(g, local_dir, tcgdex):
                 if k / sum(cnt.values()) >= 0.6:
                     exp_map[e] = [name, '']
 
+    op_img = {}
+    if g == 'op':
+        # Immagini ufficiali Bandai: solo per le carte stampate nel loro set d'origine
+        # (es. OP05-119 nell'espansione OP05). Lì le versioni, in ordine, sono:
+        # base -> CODICE, 1ª alternativa -> CODICE_p1, 2ª -> CODICE_p2 ...
+        code_of = lambda n: (re.search(r'\(([A-Z]+\d*-\d+)\)', n) or [None, None])[1]
+        prefix = collections.defaultdict(collections.Counter)
+        for p in products:
+            c = code_of(p['name'])
+            if c:
+                prefix[p['idExpansion']][c.split('-')[0]] += 1
+        dom = {e: c.most_common(1)[0][0] for e, c in prefix.items()}
+        groups = collections.defaultdict(list)
+        for p in products:
+            c = code_of(p['name'])
+            if c and dom.get(p['idExpansion']) == c.split('-')[0]:
+                groups[(p['idExpansion'], c)].append(p['idProduct'])
+        for (e, c), ids in groups.items():
+            for k, pid in enumerate(sorted(ids)):
+                op_img[pid] = 'B:' + c + ('' if k == 0 else f'_p{k}')
+
     rows = []
     for p in sorted(products, key=lambda p: p['idProduct']):
         q = guide.get(p['idProduct'])
@@ -97,7 +118,8 @@ def build_game(g, local_dir, tcgdex):
                 setn, kw = f'Starter Deck ({code})', code + ' starter deck'
             else:
                 setn, kw = code or 'Altro', code
-            extra, it, jp, img = '', '', 0, ''
+            extra, it, jp = '', '', 0
+            img = op_img.get(p['idProduct'], '')
         rows.append([p['idProduct'], p['name'], setn, 0, num, extra, it, jp, kw, img] + n + (h if h[0] else []))
 
     key = lambda r: (r[1], r[2], r[4], r[5])
