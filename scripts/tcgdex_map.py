@@ -48,7 +48,15 @@ def parse(root, asia):
                 for k in (ab.group(1) if ab else None, sid.group(1) if sid else None, sval(nm, 'it')):
                     if k and k.lower() not in [x.lower() for x in kw] and k.lower() != name.lower():
                         kw.append(k)
-                sets[base] = {'name': name, 'off': off.group(1) if off else None, 'kw': ' '.join(kw)}
+                si = re.search(r"import\s+serie\s+from\s+['\"]([^'\"]+)['\"]", t)
+                serie = ''
+                if si:
+                    sp = os.path.normpath(os.path.join(os.path.dirname(p), si.group(1))) + '.ts'
+                    if os.path.exists(sp):
+                        m2 = re.search(r'\bid\s*:\s*["\']([^"\']+)["\']', open(sp, encoding='utf-8').read())
+                        serie = m2.group(1) if m2 else ''
+                img = f"{'ja' if asia else 'en'}/{serie}/{sid.group(1)}" if serie and sid else ''
+                sets[base] = {'name': name, 'off': off.group(1) if off else None, 'kw': ' '.join(kw), 'img': img}
                 if cm:
                     exp[int(cm.group(1))] = [name, ' '.join(kw)]
     for base, info in sets.items():
@@ -78,7 +86,8 @@ def parse(root, asia):
                     found.append((int(cm), ''))
             num = local + ('/' + info['off'] if info['off'] and local.isdigit() else '')
             for cid, extra in found:
-                prod.setdefault(cid, [info['name'], num, extra, it or '', 1 if asia else 0, info['kw']])
+                prod.setdefault(cid, [info['name'], num, extra, it or '', 1 if asia else 0, info['kw'],
+                                      info['img'] + '/' + local if info['img'] else ''])
     return exp, prod
 
 
@@ -92,7 +101,7 @@ def main(src, out):
                 exp.setdefault(k, v)
             for k, v in p.items():
                 prod.setdefault(k, v)
-    json.dump({'v': 2, 'exp': exp, 'prod': prod}, open(out, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
+    json.dump({'v': 3, 'exp': exp, 'prod': prod}, open(out, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
     print(f'TCGdex: {len(exp)} espansioni, {len(prod)} carte collegate')
 
 

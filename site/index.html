@@ -120,6 +120,10 @@ footer{color:var(--muted);font-size:12px;margin-top:26px;line-height:1.5}
 .acct .sy{font-size:12px;color:var(--muted)}
 .banner{display:flex;gap:10px;align-items:flex-start;background:#1b2636;border:1px solid #2b3d55;border-radius:14px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;cursor:pointer;line-height:1.4}
 .sheet form label{margin-top:14px}
+.mid{display:flex;gap:10px;align-items:flex-start;min-width:0}
+.th{width:46px;height:64px;border-radius:4px;object-fit:cover;flex:0 0 auto;background:var(--panel2)}
+.bigwrap{text-align:center;margin:4px 0 12px}
+.big{width:100%;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.45);aspect-ratio:600/825;background:var(--panel2)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -170,8 +174,11 @@ function load(g){
   });
   return LOADING[g];
 }
-// riga carta: [id,nome,set,versione,numero,extra,nomeIT,soloGiapponese,paroleChiave,trend,media7,media30,(trend,media7,media30 reverse/foil)]
-const PO=9;
+// riga carta: [id,nome,set,versione,numero,extra,nomeIT,soloGiapponese,paroleChiave,immagine,trend,media7,media30,(trend,media7,media30 reverse/foil)]
+const PO=10;
+const IMG=(c,q)=>c[9]?'https://assets.tcgdex.net/'+c[9].split('/').map(encodeURIComponent).join('/')+'/'+q+'.webp':'';
+const thumb=c=>c[9]?`<img class="th" src="${IMG(c,'low')}" alt="" loading="lazy" onerror="this.remove()">`:'';
+const bigImg=(c,w)=>c[9]?`<div class="bigwrap"><img class="big" style="max-width:${w||220}px" src="${IMG(c,'high')}" alt="Immagine della carta" onerror="this.parentNode.remove()"></div>`:'';
 function prices(c,h){const o=h?PO+3:PO;return{now:c[o]||null,d7:c[o+1]||null,d30:c[o+2]||null}}
 function hasHolo(c){return c.length>PO+3&&!!c[PO+3]}
 function hasStd(c){return !!c[PO]}
@@ -188,7 +195,7 @@ function go(t){tab=t;try{localStorage.setItem('tcg-tab',t)}catch(e){}closeSheet(
 function render(){document.getElementById('t-coll').classList.toggle('on',tab==='coll');document.getElementById('t-home').classList.toggle('on',tab==='home');tab==='coll'?renderColl():renderHome();renderFoot()}
 function renderFoot(){
   const d=Object.values(DB)[0];
-  document.getElementById('foot').innerHTML=`Valori: Price Trend di Cardmarket, media di tutte le lingue e condizioni${d?' (aggiornato al '+d.date.split('-').reverse().join('/')+')':''}. Set e numeri delle carte Pokémon: TCGdex. Questo sito non è affiliato con Cardmarket.<br>${user?'La tua collezione è salvata online nel tuo account.':'Senza account la collezione resta solo su questo dispositivo: <a class="cm" href="#" onclick="openAcct();return false">accedi per salvarla online</a>.'}`;
+  document.getElementById('foot').innerHTML=`Valori: Price Trend di Cardmarket, media di tutte le lingue e condizioni${d?' (aggiornato al '+d.date.split('-').reverse().join('/')+')':''}. Set, numeri e immagini delle carte Pokémon: TCGdex. Immagini © Pokémon/Nintendo/Creatures/GAME FREAK. Questo sito non è affiliato con Cardmarket.<br>${user?'La tua collezione è salvata online nel tuo account.':'Senza account la collezione resta solo su questo dispositivo: <a class="cm" href="#" onclick="openAcct();return false">accedi per salvarla online</a>.'}`;
 }
 
 /* ---------- COLLEZIONE ---------- */
@@ -256,9 +263,9 @@ function drawList(){
   const rs=w.length?ROWS.filter(r=>w.every(t=>hit(r.c,t))):ROWS;
   el.innerHTML=rs.length?rs.map(r=>`
     <div class="item click" onclick="openItem(${r.i})"><div class="stripe ${r.x.g}"></div>
-      <div><div class="name">${esc(r.c[1])}</div>
+      <div class="mid">${thumb(r.c)}<div><div class="name">${esc(r.c[1])}</div>
         <div class="meta"><span class="tag">${GAMES[r.x.g].name} · ${esc(setLabel(r.x.g,r.c))}</span><span class="tag lang">${LANGS[r.x.l].n}</span>${r.x.h?`<span class="tag var">${GAMES[r.x.g].hl}</span>`:''}${r.own?'<span class="tag own">Il mio prezzo</span>':''}${albF==='all'&&r.x.a?`<span class="tag alb-t">📁 ${esc(albName(r.x.a))}</span>`:''}${tags(r.x.g,r.c)}</div>
-        <div class="meta">${eur(r.unit)} cad. · ${r.own?'<span class="flat">prezzo inserito da te</span>':deltaHTML(r.ch,' in 30 gg')}</div></div>
+        <div class="meta">${eur(r.unit)} cad. · ${r.own?'<span class="flat">prezzo inserito da te</span>':deltaHTML(r.ch,' in 30 gg')}</div></div></div>
       <div class="right"><div class="price">${eur(r.val)}</div><div class="sub">× ${r.x.q}</div></div>
     </div>`).join(''):'<p class="hint">Nessuna carta trovata.</p>';
 }
@@ -390,7 +397,7 @@ function openAdd(g,id){
 }
 function drawAdd(){
   const c=DB[S.g].byId.get(S.id);
-  showSheet(`<h3>${esc(c[1])}</h3><div class="meta"><span class="tag">${GAMES[S.g].name} · ${esc(setLabel(S.g,c))}</span>${tags(S.g,c)}</div>${itName(c)}
+  showSheet(`${bigImg(c,150)}<h3>${esc(c[1])}</h3><div class="meta"><span class="tag">${GAMES[S.g].name} · ${esc(setLabel(S.g,c))}</span>${tags(S.g,c)}</div>${itName(c)}
    <label>Lingua</label><div class="chips">${langChips(S.g,c,S.l,'aSetL')}</div>
    ${c[7]?'<div class="note" style="margin-top:-6px">Questa carta esiste solo in versione giapponese.</div>':''}
    <label>Versione</label><div class="chips">${verChips(S.g,c,S.h,'aSetH')}</div>
@@ -411,7 +418,7 @@ function confirmAdd(){
 function openItem(i){S={mode:'item',i};drawItem()}
 function drawItem(){
   const x=coll[S.i],c=DB[x.g].byId.get(x.id),p=prices(c,x.h);
-  showSheet(`<h3>${esc(c[1])}</h3><div class="meta"><span class="tag">${GAMES[x.g].name} · ${esc(setLabel(x.g,c))}</span>${tags(x.g,c)}</div>${itName(c)}
+  showSheet(`${bigImg(c,220)}<h3>${esc(c[1])}</h3><div class="meta"><span class="tag">${GAMES[x.g].name} · ${esc(setLabel(x.g,c))}</span>${tags(x.g,c)}</div>${itName(c)}
    <label>Lingua</label><div class="chips">${langChips(x.g,c,x.l,'iSetL')}</div>
    <label>Versione</label><div class="chips">${verChips(x.g,c,x.h,'iSetH')}</div>
    <label>Album</label><div class="chips">${albChips(x.a||null,'iSetA')}</div>
@@ -458,9 +465,9 @@ function movers(g){
 function cardRow(g,c){
   const n=prices(c,0),h=hasHolo(c)?prices(c,1):null,main=n.now?n:h;
   return `<div class="item click" onclick="openCard('${g}',${c[0]})"><div class="stripe ${g}"></div>
-    <div><div class="name">${esc(c[1])}</div>
+    <div class="mid">${thumb(c)}<div><div class="name">${esc(c[1])}</div>
     <div class="meta"><span class="tag">${esc(setLabel(g,c))}</span>${c[7]?'<span class="tag lang">Giapponese</span>':''}${tags(g,c)}</div>${itName(c)}
-    ${n.now&&h?`<div class="meta">${GAMES[g].hl}: ${eur(h.now)}</div>`:''}</div>
+    ${n.now&&h?`<div class="meta">${GAMES[g].hl}: ${eur(h.now)}</div>`:''}</div></div>
     <div class="right"><div class="price">${eur(main.now)}</div><div class="sub">${deltaHTML(pct(main.now,main.d30),' 30 gg')}</div>
       <button class="plus" onclick="event.stopPropagation();openAdd('${g}',${c[0]})" aria-label="Aggiungi alla collezione">+</button></div></div>`;
 }
@@ -498,7 +505,7 @@ async function results(){
 function openCard(g,id){const c=DB[g].byId.get(id);S={mode:'card',g,id,h:hasStd(c)?0:1};drawCard()}
 function drawCard(){
   const c=DB[S.g].byId.get(S.id),p=prices(c,S.h),own=coll.filter(x=>x.g===S.g&&x.id===S.id).reduce((s,x)=>s+x.q,0);
-  showSheet(`<h3>${esc(c[1])}</h3><div class="meta"><span class="tag">${GAMES[S.g].name} · ${esc(setLabel(S.g,c))}</span>${c[7]?'<span class="tag lang">Giapponese</span>':''}${tags(S.g,c)}</div>${itName(c)}
+  showSheet(`${bigImg(c,240)}<h3>${esc(c[1])}</h3><div class="meta"><span class="tag">${GAMES[S.g].name} · ${esc(setLabel(S.g,c))}</span>${c[7]?'<span class="tag lang">Giapponese</span>':''}${tags(S.g,c)}</div>${itName(c)}
    ${hasStd(c)&&hasHolo(c)?`<label>Versione</label><div class="chips">${verChips(S.g,c,S.h,'cSetH')}</div>`:''}
    ${priceGrid(c,S.h)}
    <div class="note">Variazione in 30 giorni: ${deltaHTML(pct(p.now,p.d30))}</div>
