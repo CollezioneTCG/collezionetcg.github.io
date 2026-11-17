@@ -71,11 +71,7 @@ nav button.on{background:var(--panel2);color:var(--text)}
 footer{color:var(--muted);font-size:12px;margin-top:26px;line-height:1.5}
 .loading{color:var(--muted);padding:20px;text-align:center}
 .toast{white-space:nowrap}
-@media (max-width:520px){
-  #res .item{grid-template-columns:6px 1fr}
-  #res .item .right{grid-column:2;text-align:left}
-  #res .adds{justify-content:flex-start;margin-top:0}
-}
+
 
 .item.click{cursor:pointer}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
@@ -113,6 +109,12 @@ footer{color:var(--muted);font-size:12px;margin-top:26px;line-height:1.5}
 .albhead h2{font:700 18px 'Space Grotesk',sans-serif;margin:0;word-break:break-word}
 .albhead div{white-space:nowrap}
 .tag.alb-t{background:#22301f;color:#a6e3a1}
+.intro{margin:2px 2px 14px}
+.intro h2{font:700 22px 'Space Grotesk',sans-serif;margin:0 0 4px}
+.intro p{margin:0;color:var(--muted);font-size:14px}
+.plus{margin-top:6px;width:32px;height:32px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--accent);font-size:18px;font-weight:700;cursor:pointer}
+.sec .sub{font-size:12px}
+.sheet a.btn.ghost{color:var(--text)}
 </style>
 </head>
 <body>
@@ -122,8 +124,8 @@ footer{color:var(--muted);font-size:12px;margin-top:26px;line-height:1.5}
   <footer id="foot"></footer>
 </div>
 <nav>
-  <button id="t-coll" class="on" onclick="go('coll')">La mia collezione</button>
-  <button id="t-search" onclick="go('search')">Aggiungi carte</button>
+  <button id="t-home" onclick="go('home')">🔎 Prezzi</button>
+  <button id="t-coll" onclick="go('coll')">📁 La mia collezione</button>
 </nav>
 <div class="ov" id="ov" onclick="closeSheet()"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
@@ -135,7 +137,7 @@ const GAMES={
 };
 const LANGS={it:{n:'Italiano',cm:5},en:{n:'Inglese',cm:1},ja:{n:'Giapponese',cm:7}};
 const DB={},LOADING={};
-let tab='coll',game='pk',query='',sortBy='value',langF='all',albF='all',cq='',lastAlb=null,ROWS=[],range=30;
+let tab=(()=>{try{return localStorage.getItem('tcg-tab')||'home'}catch(e){return 'home'}})(),game='pk',query='',sortBy='value',langF='all',albF='all',cq='',lastAlb=null,ROWS=[],range=30;
 let albums=[]; // [{id,name}]
 const AKEY='tcg-album-v1';
 try{albums=JSON.parse(localStorage.getItem(AKEY)||'[]')}catch(e){albums=[]}
@@ -176,8 +178,8 @@ function pct(a,b){if(!a||!b)return null;return (a-b)/b*100}
 function deltaHTML(p,suffix){if(p==null)return '<span class="flat">—</span>';const c=p>0.5?'up':p<-0.5?'down':'flat';return `<span class="${c}">${p>0?'▲':p<0?'▼':'•'} ${Math.abs(p).toFixed(1).replace('.',',')}%${suffix||''}</span>`}
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),1400)}
 
-function go(t){tab=t;document.getElementById('t-coll').classList.toggle('on',t==='coll');document.getElementById('t-search').classList.toggle('on',t==='search');render();window.scrollTo(0,0)}
-function render(){tab==='coll'?renderColl():renderSearch();renderFoot()}
+function go(t){tab=t;try{localStorage.setItem('tcg-tab',t)}catch(e){}closeSheet();render();window.scrollTo(0,0)}
+function render(){document.getElementById('t-coll').classList.toggle('on',tab==='coll');document.getElementById('t-home').classList.toggle('on',tab==='home');tab==='coll'?renderColl():renderHome();renderFoot()}
 function renderFoot(){
   const d=Object.values(DB)[0];
   document.getElementById('foot').innerHTML=`Valori: Price Trend di Cardmarket, media di tutte le lingue e condizioni${d?' (aggiornato al '+d.date.split('-').reverse().join('/')+')':''}. Set e numeri delle carte Pokémon: TCGdex. Questo sito non è affiliato con Cardmarket.<br>Versione di prova: la collezione è salvata solo in questo browser.`;
@@ -187,7 +189,7 @@ function renderFoot(){
 async function renderColl(){
   const v=document.getElementById('view');
   coll.forEach(x=>{if(!x.l)x.l=x.g==='pk'?'it':'en'});
-  if(!coll.length){v.innerHTML=`<div class="empty"><b>La tua collezione è vuota</b><br>Aggiungi le tue prime carte Pokémon o One Piece per vederne il valore di mercato.<br><button class="btn" onclick="go('search')">Aggiungi carte</button></div>`;return}
+  if(!coll.length){v.innerHTML=`<div class="empty"><b>La tua collezione è vuota</b><br>Aggiungi le tue prime carte Pokémon o One Piece per vederne il valore di mercato.<br><button class="btn" onclick="go('home')">Aggiungi carte</button></div>`;return}
   const gs=[...new Set(coll.map(x=>x.g))];
   if(gs.some(g=>!DB[g])){v.innerHTML='<div class="loading">Carico i prezzi…</div>';await Promise.all(gs.map(load));if(tab!=='coll')return}
   coll.forEach(x=>{if(x.a&&!albName(x.a))delete x.a});
@@ -217,7 +219,7 @@ async function renderColl(){
     <button class="alb new" onclick="openAlbName('new')">+ Nuovo album</button>
   </div>
   ${albF!=='all'&&albF!=='none'?`<div class="albhead"><h2>${esc(albTitle)}</h2><div><button class="btn sm ghost" onclick="openAlbName('rename','${albF}')">Rinomina</button> <button class="btn sm ghost" onclick="openAlbDel('${albF}')">Elimina</button></div></div>`:''}
-  ${!rows.length&&albF!=='all'?`<div class="empty"><b>${albF==='none'?'Nessuna carta senza album':'Questo album è vuoto'}</b><br>Quando aggiungi una carta, scegli l'album in cui metterla. Puoi anche spostare una carta che hai già: aprila e cambia album.<br><button class="btn" onclick="go('search')">Aggiungi carte</button></div>`:`
+  ${!rows.length&&albF!=='all'?`<div class="empty"><b>${albF==='none'?'Nessuna carta senza album':'Questo album è vuoto'}</b><br>Quando aggiungi una carta, scegli l'album in cui metterla. Puoi anche spostare una carta che hai già: aprila e cambia album.<br><button class="btn" onclick="go('home')">Aggiungi carte</button></div>`:`
   ${usedL.length>1?`<div class="chips"><button class="chip${langF==='all'?' on':''}" onclick="langF='all';renderColl()">Tutte le lingue</button>${['it','en','ja'].filter(l=>usedL.includes(l)).map(l=>`<button class="chip${langF===l?' on':''}" onclick="langF='${l}';renderColl()">${LANGS[l].n}</button>`).join('')}</div>`:''}
   <section class="hero">
     <div class="lbl">Valore stimato ${albF==='all'?'della collezione':albF==='none'?'carte senza album':'album “'+esc(albTitle)+'”'}${langF==='all'?'':' · '+LANGS[langF].n.toLowerCase()} · ${n} cart${n===1?'a':'e'} <button class="info" onclick="openInfo()" aria-label="Come calcoliamo il valore">ⓘ</button></div>
@@ -437,10 +439,28 @@ function openInfo(){S={mode:'info'};showSheet(`<h3>Come calcoliamo il valore</h3
  <div style="margin-top:14px"><button class="btn full" onclick="closeSheet()">Ho capito</button></div>`)}
 function iRemove(){coll.splice(S.i,1);save();closeSheet();renderColl();toast('Carta rimossa')}
 
-/* ---------- RICERCA ---------- */
-function renderSearch(){
+/* ---------- HOME: PREZZI DELLE CARTE ---------- */
+const MOVERS={};
+function movers(g){
+  if(MOVERS[g])return MOVERS[g];
+  const m=[];for(const c of DB[g].cards){const p=prices(c,0);if(p.now>=10&&p.d30>=10&&p.d7&&p.now/p.d7<1.5&&p.now/p.d7>0.67){m.push([pct(p.now,p.d30),c])}} // scarta le carte con prezzi troppo ballerini (poche vendite)
+  m.sort((a,b)=>b[0]-a[0]);
+  const top=[...DB[g].cards].sort((a,b)=>Math.max(b[PO]||0,b[PO+3]||0)-Math.max(a[PO]||0,a[PO+3]||0)).slice(0,8);
+  return MOVERS[g]={up:m.slice(0,8).map(x=>x[1]),down:m.slice(-8).reverse().map(x=>x[1]),top};
+}
+function cardRow(g,c){
+  const n=prices(c,0),h=hasHolo(c)?prices(c,1):null,main=n.now?n:h;
+  return `<div class="item click" onclick="openCard('${g}',${c[0]})"><div class="stripe ${g}"></div>
+    <div><div class="name">${esc(c[1])}</div>
+    <div class="meta"><span class="tag">${esc(setLabel(g,c))}</span>${c[7]?'<span class="tag lang">Giapponese</span>':''}${tags(g,c)}</div>${itName(c)}
+    ${n.now&&h?`<div class="meta">${GAMES[g].hl}: ${eur(h.now)}</div>`:''}</div>
+    <div class="right"><div class="price">${eur(main.now)}</div><div class="sub">${deltaHTML(pct(main.now,main.d30),' 30 gg')}</div>
+      <button class="plus" onclick="event.stopPropagation();openAdd('${g}',${c[0]})" aria-label="Aggiungi alla collezione">+</button></div></div>`;
+}
+function renderHome(){
   const v=document.getElementById('view');
   v.innerHTML=`
+  <section class="intro"><h2>Prezzi delle carte</h2><p>Cerca qualsiasi carta e guarda come cambia il suo valore di mercato su Cardmarket, aggiornato ogni giorno.</p></section>
   <div class="games">${Object.keys(GAMES).map(g=>`<button class="${g}${g===game?' on':''}" onclick="setGame('${g}')">${GAMES[g].name}</button>`).join('')}</div>
   <input id="q" class="search" type="search" placeholder="${game==='pk'?'Es. Charizard 151, Charizard MEW 199, Umbreon Evolving Skies…':'Es. Luffy OP05, Zoro Wings of the Captain, OP05-119…'}" value="${esc(query)}" autocomplete="off">
   <div id="res"></div>`;
@@ -448,24 +468,48 @@ function renderSearch(){
   q.addEventListener('input',()=>{query=q.value;clearTimeout(q._t);q._t=setTimeout(results,180)});
   results();
 }
-function setGame(g){game=g;query='';renderSearch()}
+function setGame(g){game=g;query='';renderHome()}
 async function results(){
   const r=document.getElementById('res');if(!r)return;
-  if(!DB[game]){r.innerHTML='<div class="loading">Carico il catalogo '+GAMES[game].name+'…</div>';await load(game);if(tab!=='search')return}
+  if(!DB[game]){r.innerHTML='<div class="loading">Carico il catalogo '+GAMES[game].name+'…</div>';await load(game);if(tab!=='home')return}
   const ws=words(query);
-  if(!ws.length||query.trim().length<2){r.innerHTML=`<p class="hint">Cerca tra ${DB[game].cards.length.toLocaleString('it-IT')} carte ${GAMES[game].name} con prezzo Cardmarket. Scrivi il nome e, se vuoi, il nome del set, la sua sigla o il numero della carta.</p>`;return}
+  if(!ws.length||query.trim().length<2){
+    const m=movers(game);
+    r.innerHTML=`<p class="hint">${DB[game].cards.length.toLocaleString('it-IT')} carte ${GAMES[game].name} con prezzo Cardmarket. Scrivi il nome e, se vuoi, il nome del set, la sua sigla o il numero della carta.</p>
+    <div class="sec"><h2>📈 In crescita</h2><span class="sub">ultimi 30 giorni · da 10 € in su</span></div><div class="list">${m.up.map(c=>cardRow(game,c)).join('')}</div>
+    <div class="sec"><h2>📉 In calo</h2><span class="sub">ultimi 30 giorni · da 10 € in su</span></div><div class="list">${m.down.map(c=>cardRow(game,c)).join('')}</div>
+    <div class="sec"><h2>💎 Le più preziose</h2></div><div class="list">${m.top.map(c=>cardRow(game,c)).join('')}</div>`;
+    return;
+  }
   const hits=[];for(const c of DB[game].cards){if(ws.every(w=>hit(c,w)))hits.push(c)}
   hits.sort((a,b)=>Math.max(b[PO]||0,b[PO+3]||0)-Math.max(a[PO]||0,a[PO+3]||0));
-  const show=hits.slice(0,60);
-  r.innerHTML=`<p class="hint">${hits.length.toLocaleString('it-IT')} risultati${hits.length>60?' · mostro i 60 più preziosi, aggiungi parole per restringere':''}</p>
-  <div class="list">${show.map(c=>{
-    const n=prices(c,0),h=hasHolo(c)?prices(c,1):null;
-    return `<div class="item"><div class="stripe ${game}"></div>
-      <div><div class="name">${esc(c[1])}</div>
-      <div class="meta"><span class="tag">${esc(setLabel(game,c))}</span>${c[7]?'<span class="tag lang">Giapponese</span>':''}${tags(game,c)}</div>${itName(c)}
-      <div class="meta">${n.now?eur(n.now)+' '+deltaHTML(pct(n.now,n.d30)):''}${n.now&&h?' · ':''}${h?GAMES[game].hl+' '+eur(h.now):''}</div></div>
-      <div class="right"><div class="adds"><button class="btn sm" onclick="openAdd('${game}',${c[0]})">+ Aggiungi</button></div></div></div>`}).join('')}</div>`;
+  r.innerHTML=`<p class="hint">${hits.length.toLocaleString('it-IT')} risultati${hits.length>60?' · mostro i 60 più preziosi, aggiungi parole per restringere':''}. Tocca una carta per vedere l'andamento del prezzo.</p>
+  <div class="list">${hits.slice(0,60).map(c=>cardRow(game,c)).join('')}</div>`;
 }
+
+/* Scheda di una carta (per tutti, anche senza collezione) */
+function openCard(g,id){const c=DB[g].byId.get(id);S={mode:'card',g,id,h:hasStd(c)?0:1};drawCard()}
+function drawCard(){
+  const c=DB[S.g].byId.get(S.id),p=prices(c,S.h),own=coll.filter(x=>x.g===S.g&&x.id===S.id).reduce((s,x)=>s+x.q,0);
+  showSheet(`<h3>${esc(c[1])}</h3><div class="meta"><span class="tag">${GAMES[S.g].name} · ${esc(setLabel(S.g,c))}</span>${c[7]?'<span class="tag lang">Giapponese</span>':''}${tags(S.g,c)}</div>${itName(c)}
+   ${hasStd(c)&&hasHolo(c)?`<label>Versione</label><div class="chips">${verChips(S.g,c,S.h,'cSetH')}</div>`:''}
+   ${priceGrid(c,S.h)}
+   <div class="note">Variazione in 30 giorni: ${deltaHTML(pct(p.now,p.d30))}</div>
+   <div id="cchart" class="chart"><label>Andamento del prezzo</label>${chart([p.d30||p.d7||p.now,p.d7||p.now,p.now])}</div>
+   ${own?`<div class="note" style="margin-top:12px">📁 Ne hai ${own} in collezione.</div>`:''}
+   <div style="margin-top:16px"><button class="btn full" onclick="openAdd('${S.g}',${S.id})">+ Aggiungi alla collezione</button></div>
+   <div style="margin-top:8px"><a class="btn ghost full" href="${cmLink(S.g,S.id)}" target="_blank" rel="noopener">Vedi su Cardmarket ↗</a></div>`);
+  cardChart(S.g,S.id,S.h);
+}
+function cSetH(h){S.h=h;drawCard()}
+async function cardChart(g,id,h){
+  const {dates,vals}=await seriesFor([{g,id,h,q:1,mp:null}]);
+  const el=document.getElementById('cchart');if(!el||!S||S.id!==id||S.h!==h)return;
+  if(dates.length<7)return; // finché lo storico è corto resta il grafico con le medie
+  const n=Math.min(range,dates.length),opts=[[7,'7 gg'],[30,'30 gg'],[90,'3 mesi'],[365,'1 anno']].filter(([k])=>k===7||k<=dates.length);
+  el.innerHTML='<label>Andamento del prezzo</label>'+lineChart(dates.slice(-n),vals.slice(-n))+`<div class="chips" style="margin:10px 0 0">${opts.map(([k,t])=>`<button class="chip${k===range?' on':''}" onclick="range=${k};cardChart('${g}',${id},${h})">${t}</button>`).join('')}</div>`;
+}
+
 addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
 render();
 </script>
