@@ -1,0 +1,76 @@
+# Ogni notte scarica i prezzi Cardmarket, aggiorna lo storico e pubblica il sito.
+name: Aggiorna prezzi e pubblica il sito
+
+on:
+  schedule:
+    - cron: '17 5 * * *'      # ogni giorno alle 05:17 UTC (06:17 ora italiana)
+  workflow_dispatch:           # avvio manuale da GitHub > Actions
+  push:
+    branches: [main]           # ripubblica quando cambia il sito
+
+permissions:
+  contents: write              # per salvare lo storico nel ramo "storico"
+  pages: write
+  id-token: write
+
+concurrency:
+  group: aggiorna-prezzi
+  cancel-in-progress: false
+
+jobs:
+  aggiorna:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Scarica il codice
+        uses: actions/checkout@v4
+
+      - name: Recupera lo storico salvato
+        run: |
+          mkdir -p dati
+          if git ls-remote --exit-code --heads origin storico >/dev/null; then
+            git fetch --depth 1 origin storico
+            git --work-tree=dati checkout origin/storico -- .
+            git reset -q
+          fi
+          mkdir -p dati/storico dati/tcgdex
+
+      - name: Aggiorna il catalogo TCGdex (il lunedì o se manca)
+        run: |
+          if [ "$(date -u +%u)" = "1" ] || [ ! -f dati/tcgdex/pk_tcgdex.json ]; then
+            mkdir -p /tmp/tcgdex && cd /tmp/tcgdex
+            curl -sSfL -o db.zip https://codeload.github.com/tcgdex/cards-database/zip/refs/heads/master \
+              && unzip -q db.zip \
+              && python3 -I "$GITHUB_WORKSPACE/scripts/tcgdex_map.py" /tmp/tcgdex/cards-database-master "$GITHUB_WORKSPACE/dati/tcgdex/pk_tcgdex.json" \
+              || echo "TCGdex non raggiungibile: uso la mappa precedente"
+          fi
+          [ -f dati/tcgdex/pk_tcgdex.json ] || cp data-src/pk_tcgdex.json dati/tcgdex/
+
+      - name: Scarica i prezzi Cardmarket e aggiorna lo storico
+        run: python3 scripts/build_data.py --out _site/data --history dati/storico --tcgdex dati/tcgdex/pk_tcgdex.json
+
+      - name: Salva lo storico nel ramo "storico"
+        run: |
+          cd dati
+          git init -q -b storico
+          git config user.name "aggiornamento-prezzi"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Storico prezzi al $(date -u +%F)"
+          git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" storico
+
+      - name: Prepara il sito
+        run: |
+          cp -r site/. _site/
+          cp -r dati/storico _site/storico
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Pubblica su GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4

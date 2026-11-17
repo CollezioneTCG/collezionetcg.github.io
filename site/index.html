@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Collezione TCG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f1115;--panel:#171a21;--panel2:#1e222b;--line:#2a2f3a;
+  --text:#eef0f4;--muted:#9aa1ad;--accent:#f5c542;--up:#3ecf8e;--down:#ff6b6b;
+  --pk:#ffcb05;--op:#e2483d;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 Inter,system-ui,sans-serif}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:760px;margin:0 auto;padding:16px 16px 96px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+h1{font:700 20px 'Space Grotesk',sans-serif;margin:0;letter-spacing:.2px}
+h1 span{color:var(--accent)}
+.badge{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 9px}
+.hero{background:linear-gradient(135deg,#1d2230,#151820);border:1px solid var(--line);border-radius:18px;padding:18px}
+.hero .lbl{color:var(--muted);font-size:13px}
+.hero .val{font:700 38px 'Space Grotesk',sans-serif;margin:2px 0 4px}
+.delta{font-weight:600;font-size:14px}
+.up{color:var(--up)}.down{color:var(--down)}.flat{color:var(--muted)}
+.chart{margin-top:14px}
+.chart svg{width:100%;height:120px;display:block}
+.split{display:flex;gap:10px;margin-top:12px}
+.split div{flex:1;background:var(--panel2);border-radius:12px;padding:10px 12px}
+.split b{display:block;font:700 17px 'Space Grotesk',sans-serif}
+.split small{color:var(--muted)}
+.sec{display:flex;justify-content:space-between;align-items:center;margin:22px 2px 10px}
+.sec h2{font:700 16px 'Space Grotesk',sans-serif;margin:0}
+.sec select{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:13px}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;display:grid;grid-template-columns:6px 1fr auto;gap:12px;align-items:center}
+.stripe{width:6px;align-self:stretch;border-radius:4px}
+.stripe.pk{background:var(--pk)}.stripe.op{background:var(--op)}
+.name{font-weight:600;word-break:break-word}
+.meta{color:var(--muted);font-size:12.5px;margin-top:2px}
+.tag{display:inline-block;font-size:11px;border-radius:6px;padding:1px 6px;margin-right:4px;background:var(--panel2);color:var(--muted)}
+.tag.var{background:#2b2540;color:#c9b6ff}
+.right{text-align:right;white-space:nowrap}
+.price{font:700 16px 'Space Grotesk',sans-serif}
+.sub{font-size:12px;color:var(--muted)}
+.qty{display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-top:6px}
+.qty button{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);cursor:pointer}
+.qty span{min-width:18px;text-align:center}
+a.cm{color:var(--accent);font-size:12px;text-decoration:none}
+.empty{text-align:center;color:var(--muted);padding:34px 16px;border:1px dashed var(--line);border-radius:14px}
+.empty button{margin-top:12px}
+.btn{background:var(--accent);color:#1a1400;border:0;border-radius:10px;padding:9px 14px;font-weight:600;cursor:pointer}
+.btn.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+.btn.sm{padding:6px 10px;font-size:13px}
+.games{display:flex;gap:8px;margin-bottom:10px}
+.games button{flex:1;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-weight:600}
+.games button.on.pk{border-color:var(--pk);color:var(--pk)}
+.games button.on.op{border-color:var(--op);color:#ff8a80}
+.search{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel);outline:none}
+.search:focus{border-color:var(--accent)}
+.hint{color:var(--muted);font-size:13px;margin:10px 2px}
+.adds{display:flex;gap:6px;justify-content:flex-end;margin-top:6px;flex-wrap:wrap}
+nav{position:fixed;left:0;right:0;bottom:0;background:rgba(15,17,21,.94);backdrop-filter:blur(8px);border-top:1px solid var(--line);display:flex;justify-content:center;gap:8px;padding:10px 10px calc(10px + env(safe-area-inset-bottom))}
+nav button{flex:0 1 200px;padding:10px;border-radius:12px;border:0;background:transparent;color:var(--muted);font-weight:600;cursor:pointer}
+nav button.on{background:var(--panel2);color:var(--text)}
+.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:var(--up);color:#062b1a;font-weight:600;padding:9px 16px;border-radius:999px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+footer{color:var(--muted);font-size:12px;margin-top:26px;line-height:1.5}
+.loading{color:var(--muted);padding:20px;text-align:center}
+.toast{white-space:nowrap}
+@media (max-width:520px){
+  #res .item{grid-template-columns:6px 1fr}
+  #res .item .right{grid-column:2;text-align:left}
+  #res .adds{justify-content:flex-start;margin-top:0}
+}
+
+.item.click{cursor:pointer}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.chip{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-size:13px;cursor:pointer}
+.chip.on{background:var(--accent);color:#1a1400;border-color:var(--accent);font-weight:600}
+.chip:disabled{opacity:.35;cursor:default}
+.tag.lang{background:#1d3240;color:#8fd3ff}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:20}
+.ov.show{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-width:760px;margin:0 auto;background:var(--panel);border-top-left-radius:20px;border-top-right-radius:20px;border:1px solid var(--line);padding:18px 18px calc(18px + env(safe-area-inset-bottom));z-index:21;transform:translateY(105%);transition:transform .22s ease;max-height:88vh;overflow:auto}
+.sheet.show{transform:none}
+.sheet h3{font:700 18px 'Space Grotesk',sans-serif;margin:0 30px 4px 0;word-break:break-word}
+.sheet .x{position:absolute;right:12px;top:12px;width:32px;height:32px;border-radius:50%;border:0;background:var(--panel2);cursor:pointer;font-size:16px}
+.sheet label{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.6px;margin:14px 0 6px}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.pgrid div{background:var(--panel2);border-radius:10px;padding:8px 10px}
+.pgrid small{color:var(--muted);font-size:11px;display:block}
+.pgrid b{font:700 15px 'Space Grotesk',sans-serif}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:16px}
+.btn.full{width:100%;padding:13px;font-size:15px;text-align:center;display:block;text-decoration:none}
+.note{color:var(--muted);font-size:12px;margin-top:8px}
+.qty.big button{width:38px;height:38px;font-size:18px}
+.info{background:none;border:1px solid var(--line);color:var(--muted);border-radius:50%;width:20px;height:20px;font-size:11px;padding:0;margin-left:4px;cursor:pointer;vertical-align:1px}
+.tag.own{background:#3a3016;color:var(--accent)}
+.own-row{display:flex;gap:6px;align-items:center}
+.own-row .search{padding:9px 12px}
+.albums{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin:0 -16px 12px;padding-left:16px;padding-right:16px;scrollbar-width:none}
+.albums::-webkit-scrollbar{display:none}
+.alb{flex:0 0 auto;padding:9px 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap}
+.alb small{color:var(--muted);font-weight:500;margin-left:2px}
+.alb.on{background:var(--text);color:var(--bg)}
+.alb.on small{color:#555}
+.alb.new{border-style:dashed;color:var(--accent)}
+.albhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 2px 12px}
+.albhead h2{font:700 18px 'Space Grotesk',sans-serif;margin:0;word-break:break-word}
+.albhead div{white-space:nowrap}
+.tag.alb-t{background:#22301f;color:#a6e3a1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>Collezione<span>TCG</span></h1><span class="badge">Beta</span></header>
+  <main id="view"></main>
+  <footer id="foot"></footer>
+</div>
+<nav>
+  <button id="t-coll" class="on" onclick="go('coll')">La mia collezione</button>
+  <button id="t-search" onclick="go('search')">Aggiungi carte</button>
+</nav>
+<div class="ov" id="ov" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+<div class="toast" id="toast"></div>
+<script>
+const GAMES={
+  pk:{name:'Pokémon',slug:'Pokemon',hl:'Reverse Holo',langs:['it','en','ja'],shards:4000},
+  op:{name:'One Piece',slug:'OnePiece',hl:'Foil',langs:['en','ja'],shards:1000}
+};
+const LANGS={it:{n:'Italiano',cm:5},en:{n:'Inglese',cm:1},ja:{n:'Giapponese',cm:7}};
+const DB={},LOADING={};
+let tab='coll',game='pk',query='',sortBy='value',langF='all',albF='all',cq='',lastAlb=null,ROWS=[],range=30;
+let albums=[]; // [{id,name}]
+const AKEY='tcg-album-v1';
+try{albums=JSON.parse(localStorage.getItem(AKEY)||'[]')}catch(e){albums=[]}
+function saveAlb(){try{localStorage.setItem(AKEY,JSON.stringify(albums))}catch(e){}}
+const albName=id=>{const a=albums.find(a=>a.id===id);return a?a.name:null};
+let coll=[];   // [{g,id,h,l,q}]
+const KEY='tcg-collezione-v1';
+try{coll=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){coll=[]}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(coll))}catch(e){}}
+
+const eur=v=>v==null?'—':v.toLocaleString('it-IT',{style:'currency',currency:'EUR'});
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function load(g){
+  if(DB[g])return Promise.resolve(DB[g]);
+  if(LOADING[g])return LOADING[g];
+  LOADING[g]=fetch('data/'+g+'.json').then(r=>r.json()).then(d=>{
+    const byId=new Map();
+    d.cards.forEach(c=>{c.lc=(c[1]+' '+c[2]+' '+c[4]+' '+c[6]).toLowerCase();byId.set(c[0],c)});
+    DB[g]={date:d.date,cards:d.cards,byId};return DB[g];
+  });
+  return LOADING[g];
+}
+// riga carta: [id,nome,set,versione,numero,extra,nomeIT,soloGiapponese,trend,media7,media30,(trend,media7,media30 reverse/foil)]
+const PO=8;
+function prices(c,h){const o=h?PO+3:PO;return{now:c[o]||null,d7:c[o+1]||null,d30:c[o+2]||null}}
+function hasHolo(c){return c.length>PO+3&&!!c[PO+3]}
+function hasStd(c){return !!c[PO]}
+function setLabel(g,c){return c[2]+(c[4]&&g==='pk'?' · '+c[4]:'')}
+function tags(g,c){return (c[5]?`<span class="tag var">${esc(c[5])}</span>`:'')+(c[3]?`<span class="tag">Versione ${c[3]}</span>`:'')}
+function itName(c){return c[6]?`<div class="meta">IT: ${esc(c[6])}</div>`:''}
+function defLang(g,c){return c[7]?'ja':g==='pk'?'it':'en'}
+function cmLink(g,id,l){return 'https://www.cardmarket.com/it/'+GAMES[g].slug+'/Products?idProduct='+id+(l?'&language='+LANGS[l].cm:'')}
+function pct(a,b){if(!a||!b)return null;return (a-b)/b*100}
+function deltaHTML(p,suffix){if(p==null)return '<span class="flat">—</span>';const c=p>0.5?'up':p<-0.5?'down':'flat';return `<span class="${c}">${p>0?'▲':p<0?'▼':'•'} ${Math.abs(p).toFixed(1).replace('.',',')}%${suffix||''}</span>`}
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),1400)}
+
+function go(t){tab=t;document.getElementById('t-coll').classList.toggle('on',t==='coll');document.getElementById('t-search').classList.toggle('on',t==='search');render();window.scrollTo(0,0)}
+function render(){tab==='coll'?renderColl():renderSearch();renderFoot()}
+function renderFoot(){
+  const d=Object.values(DB)[0];
+  document.getElementById('foot').innerHTML=`Valori: Price Trend di Cardmarket, media di tutte le lingue e condizioni${d?' (aggiornato al '+d.date.split('-').reverse().join('/')+')':''}. Set e numeri delle carte Pokémon: TCGdex. Questo sito non è affiliato con Cardmarket.<br>Versione di prova: la collezione è salvata solo in questo browser.`;
+}
+
+/* ---------- COLLEZIONE ---------- */
+async function renderColl(){
+  const v=document.getElementById('view');
+  coll.forEach(x=>{if(!x.l)x.l=x.g==='pk'?'it':'en'});
+  if(!coll.length){v.innerHTML=`<div class="empty"><b>La tua collezione è vuota</b><br>Aggiungi le tue prime carte Pokémon o One Piece per vederne il valore di mercato.<br><button class="btn" onclick="go('search')">Aggiungi carte</button></div>`;return}
+  const gs=[...new Set(coll.map(x=>x.g))];
+  if(gs.some(g=>!DB[g])){v.innerHTML='<div class="loading">Carico i prezzi…</div>';await Promise.all(gs.map(load));if(tab!=='coll')return}
+  coll.forEach(x=>{if(x.a&&!albName(x.a))delete x.a});
+  if(albF!=='all'&&albF!=='none'&&!albName(albF))albF='all';
+  const inAlb=x=>albF==='all'||(albF==='none'?!x.a:x.a===albF);
+  const usedL=[...new Set(coll.filter(inAlb).map(x=>x.l))];
+  if(langF!=='all'&&!usedL.includes(langF))langF='all';
+  const noAlb=coll.some(x=>!x.a);
+  let tot={now:0,d7:0,d30:0},per={pk:0,op:0},rows=[],n=0;
+  coll.forEach((x,i)=>{
+    if(!inAlb(x)||(langF!=='all'&&x.l!==langF))return;
+    const c=DB[x.g].byId.get(x.id);if(!c)return;
+    const p=prices(c,x.h),own=x.mp!=null;
+    const u=own?x.mp:(p.now||0),u7=own?x.mp:(p.d7||p.now||0),u30=own?x.mp:(p.d30||p.d7||p.now||0);
+    const now=u*x.q;n+=x.q;
+    tot.now+=now;tot.d7+=u7*x.q;tot.d30+=u30*x.q;per[x.g]+=now;
+    rows.push({x,i,c,p,own,unit:u,val:now,ch:own?null:pct(p.now,p.d30)});
+  });
+  rows.sort(sortBy==='value'?(a,b)=>b.val-a.val:sortBy==='up'?(a,b)=>(b.ch??-1e9)-(a.ch??-1e9):(a,b)=>(a.ch??1e9)-(b.ch??1e9));
+  ROWS=rows;
+  const albTitle=albF==='all'?'':albF==='none'?'Carte senza album':albName(albF);
+  v.innerHTML=`
+  <div class="albums" role="tablist" aria-label="Album">
+    <button class="alb${albF==='all'?' on':''}" onclick="setAlb('all')">Tutta la collezione</button>
+    ${albums.map(a=>`<button class="alb${albF===a.id?' on':''}" onclick="setAlb('${a.id}')">${esc(a.name)} <small>${coll.filter(x=>x.a===a.id).reduce((s,x)=>s+x.q,0)}</small></button>`).join('')}
+    ${albums.length&&noAlb?`<button class="alb${albF==='none'?' on':''}" onclick="setAlb('none')">Senza album</button>`:''}
+    <button class="alb new" onclick="openAlbName('new')">+ Nuovo album</button>
+  </div>
+  ${albF!=='all'&&albF!=='none'?`<div class="albhead"><h2>${esc(albTitle)}</h2><div><button class="btn sm ghost" onclick="openAlbName('rename','${albF}')">Rinomina</button> <button class="btn sm ghost" onclick="openAlbDel('${albF}')">Elimina</button></div></div>`:''}
+  ${!rows.length&&albF!=='all'?`<div class="empty"><b>${albF==='none'?'Nessuna carta senza album':'Questo album è vuoto'}</b><br>Quando aggiungi una carta, scegli l'album in cui metterla. Puoi anche spostare una carta che hai già: aprila e cambia album.<br><button class="btn" onclick="go('search')">Aggiungi carte</button></div>`:`
+  ${usedL.length>1?`<div class="chips"><button class="chip${langF==='all'?' on':''}" onclick="langF='all';renderColl()">Tutte le lingue</button>${['it','en','ja'].filter(l=>usedL.includes(l)).map(l=>`<button class="chip${langF===l?' on':''}" onclick="langF='${l}';renderColl()">${LANGS[l].n}</button>`).join('')}</div>`:''}
+  <section class="hero">
+    <div class="lbl">Valore stimato ${albF==='all'?'della collezione':albF==='none'?'carte senza album':'album “'+esc(albTitle)+'”'}${langF==='all'?'':' · '+LANGS[langF].n.toLowerCase()} · ${n} cart${n===1?'a':'e'} <button class="info" onclick="openInfo()" aria-label="Come calcoliamo il valore">ⓘ</button></div>
+    <div class="val">${eur(tot.now)}</div>
+    <div class="delta">${deltaHTML(pct(tot.now,tot.d30),' rispetto alla media 30 giorni')}</div>
+    <div class="chart" id="hchart">${chart([tot.d30,tot.d7,tot.now])}</div>
+    <div class="split">
+      <div><small>Pokémon</small><b>${eur(per.pk)}</b></div>
+      <div><small>One Piece</small><b>${eur(per.op)}</b></div>
+    </div>
+  </section>
+  <div class="sec"><h2>Le tue carte</h2>
+    <select onchange="sortBy=this.value;renderColl()" aria-label="Ordina">
+      <option value="value"${sortBy==='value'?' selected':''}>Più preziose</option>
+      <option value="up"${sortBy==='up'?' selected':''}>In crescita</option>
+      <option value="down"${sortBy==='down'?' selected':''}>In calo</option>
+    </select></div>
+  <input id="cq" class="search" type="search" placeholder="Cerca ${albF==='all'?'nella collezione':'in questo album'}: nome, set, numero…" value="${esc(cq)}" autocomplete="off" style="margin-bottom:10px">
+  <div class="list" id="clist"></div>`}`;
+  const q=document.getElementById('cq');
+  if(q){q.addEventListener('input',()=>{cq=q.value;drawList()});drawList()}
+  if(rows.length)histChart(rows);
+}
+function drawList(){
+  const el=document.getElementById('clist');if(!el)return;
+  const w=cq.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  const rs=w.length?ROWS.filter(r=>w.every(t=>r.c.lc.includes(t))):ROWS;
+  el.innerHTML=rs.length?rs.map(r=>`
+    <div class="item click" onclick="openItem(${r.i})"><div class="stripe ${r.x.g}"></div>
+      <div><div class="name">${esc(r.c[1])}</div>
+        <div class="meta"><span class="tag">${GAMES[r.x.g].name} · ${esc(setLabel(r.x.g,r.c))}</span><span class="tag lang">${LANGS[r.x.l].n}</span>${r.x.h?`<span class="tag var">${GAMES[r.x.g].hl}</span>`:''}${r.own?'<span class="tag own">Il mio prezzo</span>':''}${albF==='all'&&r.x.a?`<span class="tag alb-t">📁 ${esc(albName(r.x.a))}</span>`:''}${tags(r.x.g,r.c)}</div>
+        <div class="meta">${eur(r.unit)} cad. · ${r.own?'<span class="flat">prezzo inserito da te</span>':deltaHTML(r.ch,' in 30 gg')}</div></div>
+      <div class="right"><div class="price">${eur(r.val)}</div><div class="sub">× ${r.x.q}</div></div>
+    </div>`).join(''):'<p class="hint">Nessuna carta trovata.</p>';
+}
+function setAlb(a){albF=a;cq='';renderColl()}
+
+/* ---------- ALBUM ---------- */
+function albChips(sel,fn){
+  return `<button class="chip${!sel?' on':''}" onclick="${fn}(null)">Nessun album</button>`+albums.map(a=>`<button class="chip${sel===a.id?' on':''}" onclick="${fn}('${a.id}')">${esc(a.name)}</button>`).join('')+`<button class="chip" onclick="openAlbName('new',null,'${fn}')">+ Nuovo album</button>`
+}
+let RET=null; // foglio da riaprire dopo la creazione di un album
+function openAlbName(mode,id,fromFn){
+  RET=S&&fromFn?{S:{...S},fn:fromFn}:null;
+  const cur=mode==='rename'?albName(id):'';
+  S={mode:'alb',am:mode,id};
+  showSheet(`<h3>${mode==='rename'?'Rinomina album':'Nuovo album'}</h3>
+   <label>Nome dell'album</label>
+   <input id="an" class="search" type="text" maxlength="40" placeholder="Es. Raccoglitore rosso, Da vendere, Set 151…" value="${esc(cur)}">
+   <div id="aerr" class="note"></div>
+   <div style="margin-top:14px"><button class="btn full" onclick="saveAlbName()">${mode==='rename'?'Salva nome':'Crea album'}</button></div>`);
+  setTimeout(()=>{const i=document.getElementById('an');if(i){i.focus();i.addEventListener('keydown',e=>{if(e.key==='Enter')saveAlbName()})}},250);
+}
+function saveAlbName(){
+  const v=document.getElementById('an').value.trim();
+  const err=document.getElementById('aerr');
+  if(!v){err.textContent='Scrivi un nome.';return}
+  if(albums.some(a=>a.name.toLowerCase()===v.toLowerCase()&&a.id!==S.id)){err.textContent='Esiste già un album con questo nome.';return}
+  let newId=null;
+  if(S.am==='rename'){albums.find(a=>a.id===S.id).name=v;toast('Album rinominato ✓')}
+  else{newId='a'+Date.now().toString(36);albums.push({id:newId,name:v});toast('Album creato ✓')}
+  saveAlb();
+  if(RET){const r=RET;RET=null;S=r.S;window[r.fn](newId);return}
+  closeSheet();if(newId)albF=newId;if(tab==='coll')renderColl();
+}
+function openAlbDel(id){
+  const n=coll.filter(x=>x.a===id).reduce((s,x)=>s+x.q,0);
+  S={mode:'albdel',id};
+  showSheet(`<h3>Eliminare l'album “${esc(albName(id))}”?</h3>
+   <p class="note" style="font-size:14px">${n?`Le ${n} carte che contiene <b>restano nella tua collezione</b>, senza album.`:'L\'album è vuoto.'}</p>
+   <div style="margin-top:14px"><button class="btn full" style="background:var(--down);color:#fff" onclick="delAlb('${id}')">Elimina album</button></div>
+   <div style="margin-top:8px"><button class="btn ghost full" onclick="closeSheet()">Annulla</button></div>`);
+}
+function delAlb(id){albums=albums.filter(a=>a.id!==id);coll.forEach(x=>{if(x.a===id)delete x.a});saveAlb();save();albF='all';closeSheet();renderColl();toast('Album eliminato')}
+/* ---------- STORICO PREZZI ---------- */
+const HIST={},HLOAD={};
+function shard(g,id){const s=id%GAMES[g].shards,k=g+s;
+  if(HIST[k])return Promise.resolve(HIST[k]);
+  if(!HLOAD[k])HLOAD[k]=fetch('storico/'+g+'/'+s+'.json').then(r=>r.ok?r.json():null).catch(()=>null).then(d=>HIST[k]=d||{d:[],v:{}});
+  return HLOAD[k];
+}
+async function seriesFor(list){ // list: [{g,id,h,q,mp}] -> {dates,vals}
+  const hs=await Promise.all(list.map(x=>shard(x.g,x.id)));
+  const ds=new Set();hs.forEach(h=>h.d.forEach(d=>ds.add(d)));
+  const dates=[...ds].sort();
+  const vals=dates.map(()=>0);
+  list.forEach((x,i)=>{
+    const h=hs[i],arr=h.v[x.id+(x.h?'h':'')]||[],cur=prices(DB[x.g].byId.get(x.id),x.h).now||0;
+    const at=new Map(h.d.map((d,j)=>[d,arr[j]]));
+    let last=null;
+    const firstKnown=arr.find(v=>v!=null)??cur;
+    dates.forEach((d,j)=>{let v=at.get(d);if(v==null)v=last??firstKnown;last=v;vals[j]+=(x.mp!=null?x.mp:v)*x.q});
+  });
+  return {dates,vals};
+}
+async function histChart(rows){
+  const el=document.getElementById('hchart');if(!el)return;
+  const {dates,vals}=await seriesFor(rows.map(r=>r.x));
+  if(!document.getElementById('hchart'))return;
+  if(dates.length<7){
+    if(dates.length)el.insertAdjacentHTML('beforeend',`<div class="note">Lo storico giornaliero è partito il ${fmtD(dates[0])}: il grafico giorno per giorno comparirà dopo una settimana di dati.</div>`);
+    return;
+  }
+  const opts=[[7,'7 gg'],[30,'30 gg'],[90,'3 mesi'],[365,'1 anno']].filter(([n])=>n<=Math.max(7,dates.length)||n===7);
+  if(!opts.some(o=>o[0]===range))range=opts[opts.length-1][0];
+  const n=Math.min(range,dates.length),D=dates.slice(-n),V=vals.slice(-n);
+  el.innerHTML=lineChart(D,V)+`<div class="chips" style="margin:10px 0 0">${opts.map(([k,t])=>`<button class="chip${k===range?' on':''}" onclick="range=${k};histChart(ROWS)">${t}</button>`).join('')}</div>`;
+}
+const fmtD=d=>d.split('-').reverse().slice(0,2).join('/');
+function lineChart(D,V){
+  const W=600,H=130,P=6,mx=Math.max(...V),mn=Math.min(...V),rg=(mx-mn)||mx*0.1||1;
+  const pts=V.map((v,i)=>[P+i*(W-2*P)/Math.max(1,V.length-1),H-24-((v-mn)/rg)*(H-40)]);
+  const up=V[V.length-1]>=V[0],col=up?'var(--up)':'var(--down)',hex=up?'#3ecf8e':'#ff6b6b';
+  const d='M'+pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' L');
+  const ch=pct(V[V.length-1],V[0]);
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Andamento del valore">
+   <defs><linearGradient id="gr2" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${hex}" stop-opacity=".35"/><stop offset="1" stop-color="${hex}" stop-opacity="0"/></linearGradient></defs>
+   <path d="${d} L${pts[pts.length-1][0]},${H-18} L${pts[0][0]},${H-18} Z" fill="url(#gr2)"/>
+   <path d="${d}" fill="none" stroke="${col}" stroke-width="3" vector-effect="non-scaling-stroke"/>
+  </svg><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted)"><span>${fmtD(D[0])}<br><b style="color:var(--text)">${eur(V[0])}</b></span><span style="text-align:center">nel periodo<br><b>${deltaHTML(ch)}</b></span><span style="text-align:right">${fmtD(D[D.length-1])}<br><b style="color:var(--text)">${eur(V[V.length-1])}</b></span></div>`;
+}
+async function cardHist(x){
+  const el=document.getElementById('ichart');if(!el)return;
+  const {dates,vals}=await seriesFor([{...x,q:1,mp:null}]);
+  if(!document.getElementById('ichart'))return;
+  el.innerHTML=dates.length>=7?'<label>Andamento del prezzo</label>'+lineChart(dates.slice(-90),vals.slice(-90)):'';
+}
+
+function chart(vals){
+  const W=600,H=120,P=12,labels=['30 giorni fa (media)','7 giorni fa (media)','Oggi'];
+  const mx=Math.max(...vals),mn=Math.min(...vals),rg=(mx-mn)||mx*0.1||1;
+  const pts=vals.map((v,i)=>[P+i*(W-2*P)/2,H-28-((v-mn)/rg)*(H-50)]);
+  const up=vals[2]>=vals[0],col=up?'var(--up)':'var(--down)',hex=up?'#3ecf8e':'#ff6b6b';
+  const d='M'+pts.map(p=>p.join(',')).join(' L');
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Andamento del valore">
+   <defs><linearGradient id="gr" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${hex}" stop-opacity=".35"/><stop offset="1" stop-color="${hex}" stop-opacity="0"/></linearGradient></defs>
+   <path d="${d} L${pts[2][0]},${H-22} L${pts[0][0]},${H-22} Z" fill="url(#gr)"/>
+   <path d="${d}" fill="none" stroke="${col}" stroke-width="3" vector-effect="non-scaling-stroke"/>
+   ${pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="5" fill="${col}"/>`).join('')}
+  </svg><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted)">${labels.map((l,i)=>`<span>${l}<br><b style="color:var(--text)">${eur(vals[i])}</b></span>`).join('')}</div>`;
+}
+
+/* ---------- SCHEDA (foglio dal basso) ---------- */
+let S=null; // stato del foglio
+function showSheet(html){document.getElementById('sheet').innerHTML='<button class="x" onclick="closeSheet()" aria-label="Chiudi">✕</button>'+html;document.getElementById('ov').classList.add('show');document.getElementById('sheet').classList.add('show')}
+function closeSheet(){document.getElementById('ov').classList.remove('show');document.getElementById('sheet').classList.remove('show');S=null}
+function priceGrid(c,h){const p=prices(c,h);return `<label>Valore di mercato Cardmarket</label><div class="note" style="margin-top:-2px">Media di tutte le lingue e condizioni</div><div class="pgrid"><div><small>Oggi</small><b>${eur(p.now)}</b></div><div><small>Media 7 gg</small><b>${eur(p.d7)}</b></div><div><small>Media 30 gg</small><b>${eur(p.d30)}</b></div></div>`}
+function langChips(g,c,sel,fn){
+  return GAMES[g].langs.map(l=>{const dis=c[7]&&l!=='ja';return `<button class="chip${sel===l?' on':''}" ${dis?'disabled':''} onclick="${fn}('${l}')">${LANGS[l].n}</button>`}).join('')
+}
+function verChips(g,c,sel,fn){
+  const o=[];if(hasStd(c))o.push([0,'Standard']);if(hasHolo(c))o.push([1,GAMES[g].hl]);
+  return o.map(([h,t])=>`<button class="chip${sel===h?' on':''}" onclick="${fn}(${h})">${t}</button>`).join('')
+}
+
+// Aggiunta
+function openAdd(g,id){
+  const c=DB[g].byId.get(id);
+  const da=albF!=='all'&&albF!=='none'&&albName(albF)?albF:(lastAlb&&albName(lastAlb)?lastAlb:null);
+  S={mode:'add',g,id,l:defLang(g,c),h:hasStd(c)?0:1,q:1,a:da};drawAdd();
+}
+function drawAdd(){
+  const c=DB[S.g].byId.get(S.id);
+  showSheet(`<h3>${esc(c[1])}</h3><div class="meta"><span class="tag">${GAMES[S.g].name} · ${esc(setLabel(S.g,c))}</span>${tags(S.g,c)}</div>${itName(c)}
+   <label>Lingua</label><div class="chips">${langChips(S.g,c,S.l,'aSetL')}</div>
+   ${c[7]?'<div class="note" style="margin-top:-6px">Questa carta esiste solo in versione giapponese.</div>':''}
+   <label>Versione</label><div class="chips">${verChips(S.g,c,S.h,'aSetH')}</div>
+   ${priceGrid(c,S.h)}
+   <div class="row"><span>Quantità</span><div class="qty big"><button onclick="aQ(-1)" aria-label="Meno">−</button><span>${S.q}</span><button onclick="aQ(1)" aria-label="Più">+</button></div></div>
+   <label>Album</label><div class="chips">${albChips(S.a,'aSetA')}</div>
+   <div style="margin-top:16px"><button class="btn full" onclick="confirmAdd()">Aggiungi${S.a?' in “'+esc(albName(S.a))+'”':' alla collezione'}</button></div>`);
+}
+function aSetA(a){S.a=a;drawAdd()} function aSetL(l){S.l=l;drawAdd()} function aSetH(h){S.h=h;drawAdd()} function aQ(d){S.q=Math.max(1,S.q+d);drawAdd()}
+function confirmAdd(){
+  const e=coll.find(x=>x.g===S.g&&x.id===S.id&&x.h===S.h&&x.l===S.l&&(x.a||null)===S.a);
+  if(e)e.q+=S.q;else{const o={g:S.g,id:S.id,h:S.h,l:S.l,q:S.q};if(S.a)o.a=S.a;coll.push(o)}
+  lastAlb=S.a;const an=S.a?albName(S.a):null;
+  save();closeSheet();toast(an?'Aggiunta in “'+an+'” ✓':'Aggiunta alla collezione ✓');
+}
+
+// Dettaglio carta in collezione
+function openItem(i){S={mode:'item',i};drawItem()}
+function drawItem(){
+  const x=coll[S.i],c=DB[x.g].byId.get(x.id),p=prices(c,x.h);
+  showSheet(`<h3>${esc(c[1])}</h3><div class="meta"><span class="tag">${GAMES[x.g].name} · ${esc(setLabel(x.g,c))}</span>${tags(x.g,c)}</div>${itName(c)}
+   <label>Lingua</label><div class="chips">${langChips(x.g,c,x.l,'iSetL')}</div>
+   <label>Versione</label><div class="chips">${verChips(x.g,c,x.h,'iSetH')}</div>
+   <label>Album</label><div class="chips">${albChips(x.a||null,'iSetA')}</div>
+   ${priceGrid(c,x.h)}
+   <div class="note">Variazione in 30 giorni: ${deltaHTML(pct(p.now,p.d30))}</div>
+   <div id="ichart" class="chart"></div>
+   <div class="row"><span>Copie possedute</span><div class="qty big"><button onclick="iQ(-1)" aria-label="Meno">−</button><span>${x.q}</span><button onclick="iQ(1)" aria-label="Più">+</button></div></div>
+   <label>Il mio prezzo (per copia)</label>
+   <div class="own-row"><input id="mp" class="search" type="text" inputmode="decimal" placeholder="Es. ${p.now?p.now.toFixed(2).replace('.',','):'10,00'}" value="${x.mp!=null?x.mp.toFixed(2).replace('.',','):''}"><button class="btn sm" onclick="setMP()">Salva</button>${x.mp!=null?'<button class="btn sm ghost" onclick="clearMP()">Usa Cardmarket</button>':''}</div>
+   <div class="note">${x.mp!=null?'Nel totale usiamo il tuo prezzo al posto di quello di Cardmarket.':'Facoltativo: se sai che la tua copia vale di più o di meno (lingua, condizione…), inserisci il tuo valore.'}</div>
+   <div class="row"><span>Valore totale</span><b class="price">${eur((x.mp!=null?x.mp:(p.now||0))*x.q)}</b></div>
+   <div style="margin-top:16px"><a class="btn full" href="${cmLink(x.g,x.id,x.l)}" target="_blank" rel="noopener">Vedi questa carta su Cardmarket ↗</a></div>
+   <div style="margin-top:8px"><button class="btn ghost full" onclick="iRemove()">Rimuovi dalla collezione</button></div>
+   <div class="note">Il link apre la carta già filtrata per ${LANGS[x.l].n.toLowerCase()}: lì vedi le offerte reali in quella lingua.</div>`);
+  cardHist(x);
+}
+function merge(){ // unisce eventuali doppioni dopo una modifica
+  const x=coll[S.i];const j=coll.findIndex((y,k)=>k!==S.i&&y.g===x.g&&y.id===x.id&&y.h===x.h&&y.l===x.l&&(y.a||null)===(x.a||null));
+  if(j>=0){coll[j].q+=x.q;coll.splice(S.i,1);S.i=j>S.i?j-1:j}
+}
+function iSetA(a){if(a)coll[S.i].a=a;else delete coll[S.i].a;merge();save();drawItem();renderColl();if(a)toast('Spostata in “'+albName(a)+'”')}
+function iSetL(l){coll[S.i].l=l;merge();save();drawItem();renderColl()}
+function iSetH(h){coll[S.i].h=h;merge();save();drawItem();renderColl()}
+function iQ(d){const x=coll[S.i];x.q+=d;if(x.q<=0){iRemove();return}save();drawItem();renderColl()}
+function setMP(){const v=document.getElementById('mp').value.replace(',','.');const n=parseFloat(v);if(isNaN(n)||n<0){toast('Inserisci un prezzo valido');return}coll[S.i].mp=Math.round(n*100)/100;save();drawItem();renderColl();toast('Prezzo salvato ✓')}
+function clearMP(){delete coll[S.i].mp;save();drawItem();renderColl()}
+function openInfo(){S={mode:'info'};showSheet(`<h3>Come calcoliamo il valore</h3>
+ <p class="note" style="font-size:14px;color:var(--text)">Per ogni carta usiamo il <b>Price Trend di Cardmarket</b>, aggiornato ogni giorno.</p>
+ <p class="note" style="font-size:14px">È una <b>media delle vendite degli ultimi giorni</b> che comprende <b>tutte le lingue europee</b> (italiano, inglese, francese…) e <b>tutte le condizioni</b>, da Mint a Poor. Le carte Pokémon giapponesi hanno invece un prezzo separato.</p>
+ <p class="note" style="font-size:14px">Per questo il valore è una <b>stima di mercato</b>, non il prezzo esatto della tua copia. Se conosci il valore reale di una carta, aprila e inserisci <b>"Il mio prezzo"</b>: verrà usato nel totale.</p>
+ <p class="note" style="font-size:14px">Per vedere le offerte reali nella tua lingua, apri la carta e tocca <b>"Vedi questa carta su Cardmarket"</b>.</p>
+ <div style="margin-top:14px"><button class="btn full" onclick="closeSheet()">Ho capito</button></div>`)}
+function iRemove(){coll.splice(S.i,1);save();closeSheet();renderColl();toast('Carta rimossa')}
+
+/* ---------- RICERCA ---------- */
+function renderSearch(){
+  const v=document.getElementById('view');
+  v.innerHTML=`
+  <div class="games">${Object.keys(GAMES).map(g=>`<button class="${g}${g===game?' on':''}" onclick="setGame('${g}')">${GAMES[g].name}</button>`).join('')}</div>
+  <input id="q" class="search" type="search" placeholder="${game==='pk'?'Es. Charizard 151, Umbreon Evolving Skies…':'Es. Luffy, Zoro, OP05-119…'}" value="${esc(query)}" autocomplete="off">
+  <div id="res"></div>`;
+  const q=document.getElementById('q');
+  q.addEventListener('input',()=>{query=q.value;clearTimeout(q._t);q._t=setTimeout(results,180)});
+  results();
+}
+function setGame(g){game=g;query='';renderSearch()}
+async function results(){
+  const r=document.getElementById('res');if(!r)return;
+  if(!DB[game]){r.innerHTML='<div class="loading">Carico il catalogo '+GAMES[game].name+'…</div>';await load(game);if(tab!=='search')return}
+  const words=query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  if(!words.length||query.trim().length<2){r.innerHTML=`<p class="hint">Cerca tra ${DB[game].cards.length.toLocaleString('it-IT')} carte ${GAMES[game].name} con prezzo Cardmarket. Puoi scrivere anche il set o il numero.</p>`;return}
+  const hits=[];for(const c of DB[game].cards){if(words.every(w=>c.lc.includes(w)))hits.push(c)}
+  hits.sort((a,b)=>Math.max(b[PO]||0,b[PO+3]||0)-Math.max(a[PO]||0,a[PO+3]||0));
+  const show=hits.slice(0,60);
+  r.innerHTML=`<p class="hint">${hits.length.toLocaleString('it-IT')} risultati${hits.length>60?' · mostro i 60 più preziosi, aggiungi parole per restringere':''}</p>
+  <div class="list">${show.map(c=>{
+    const n=prices(c,0),h=hasHolo(c)?prices(c,1):null;
+    return `<div class="item"><div class="stripe ${game}"></div>
+      <div><div class="name">${esc(c[1])}</div>
+      <div class="meta"><span class="tag">${esc(setLabel(game,c))}</span>${c[7]?'<span class="tag lang">Giapponese</span>':''}${tags(game,c)}</div>${itName(c)}
+      <div class="meta">${n.now?eur(n.now)+' '+deltaHTML(pct(n.now,n.d30)):''}${n.now&&h?' · ':''}${h?GAMES[game].hl+' '+eur(h.now):''}</div></div>
+      <div class="right"><div class="adds"><button class="btn sm" onclick="openAdd('${game}',${c[0]})">+ Aggiungi</button></div></div></div>`}).join('')}</div>`;
+}
+addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
+render();
+</script>
+</body>
+</html>
