@@ -17,6 +17,9 @@ GAMES = {
     'op': (18, 'foil', 1000),
 }
 HISTORY_DAYS = 365
+PO = 9  # posizione del primo prezzo in ogni riga
+# riga: [id, nome, set, versione, numero, extra, nome italiano, solo giapponese, parole chiave, prezzi...]
+OP_SETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data-src', 'op_sets.json')
 JP = re.compile('[぀-ヿ一-鿿가-힯]')
 
 
@@ -44,7 +47,12 @@ def build_game(g, local_dir, tcgdex):
     date = (pg.get('createdAt') or '')[:10]
 
     prod_map = {int(k): v for k, v in (tcgdex or {}).get('prod', {}).items()}
-    exp_map = {int(k): v for k, v in (tcgdex or {}).get('exp', {}).items()}
+    exp_map = {}
+    for k, v in (tcgdex or {}).get('exp', {}).items():
+        exp_map[int(k)] = v if isinstance(v, list) else [v, '']
+    op_sets = {}
+    if g == 'op' and os.path.exists(OP_SETS):
+        op_sets = json.load(open(OP_SETS, encoding='utf-8'))
     if g == 'pk':
         votes = collections.defaultdict(collections.Counter)
         for p in products:
@@ -54,7 +62,7 @@ def build_game(g, local_dir, tcgdex):
             if e not in exp_map:
                 name, k = cnt.most_common(1)[0]
                 if k / sum(cnt.values()) >= 0.6:
-                    exp_map[e] = name
+                    exp_map[e] = [name, '']
 
     rows = []
     for p in sorted(products, key=lambda p: p['idProduct']):
@@ -68,9 +76,10 @@ def build_game(g, local_dir, tcgdex):
         if g == 'pk':
             m = prod_map.get(p['idProduct'])
             if m:
-                setn, num, extra, it, asia = m
+                setn, num, extra, it, asia, kw = (list(m) + [''])[:6]
             else:
-                setn, num, extra, it, asia = exp_map.get(p['idExpansion'], 'Set #%d' % p['idExpansion']), '', '', '', 0
+                setn, kw = exp_map.get(p['idExpansion'], ['Set #%d' % p['idExpansion'], ''])
+                num, extra, it, asia = '', '', '', 0
             base = re.sub(r'\s*\[.*$', '', p['name']).strip().lower()
             if it and it.strip().lower() == base:
                 it = ''
@@ -79,11 +88,17 @@ def build_game(g, local_dir, tcgdex):
             m = re.search(r'\(([A-Z0-9]+-\d+)\)', p['name'])
             num = m.group(1) if m else ''
             code = re.search(r'\(([A-Z]+\d*)-\d+\)', p['name'])
-            setn = code.group(1) if code else 'Altro'
-            if setn == 'P':
-                setn = 'Promo'
+            code = code.group(1) if code else ''
+            if code == 'P':
+                setn, kw = 'Promo', 'P'
+            elif code in op_sets:
+                setn, kw = f'{op_sets[code]} ({code})', code
+            elif code.startswith('ST'):
+                setn, kw = f'Starter Deck ({code})', code + ' starter deck'
+            else:
+                setn, kw = code or 'Altro', code
             extra, it, jp = '', '', 0
-        rows.append([p['idProduct'], p['name'], setn, 0, num, extra, it, jp] + n + (h if h[0] else []))
+        rows.append([p['idProduct'], p['name'], setn, 0, num, extra, it, jp, kw] + n + (h if h[0] else []))
 
     key = lambda r: (r[1], r[2], r[4], r[5])
     cnt = collections.Counter(key(r) for r in rows)
@@ -103,10 +118,10 @@ def update_history(g, date, rows, hist_dir):
     today = collections.defaultdict(dict)
     for r in rows:
         s = r[0] % shards
-        if r[8]:
-            today[s][str(r[0])] = r[8]
-        if len(r) > 11 and r[11]:
-            today[s][str(r[0]) + 'h'] = r[11]
+        if r[PO]:
+            today[s][str(r[0])] = r[PO]
+        if len(r) > PO + 3 and r[PO + 3]:
+            today[s][str(r[0]) + 'h'] = r[PO + 3]
     for s in range(shards):
         path = os.path.join(gdir, f'{s}.json')
         try:

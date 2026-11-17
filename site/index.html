@@ -147,6 +147,9 @@ try{coll=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){coll=[]}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(coll))}catch(e){}}
 
 const eur=v=>v==null?'—':v.toLocaleString('it-IT',{style:'currency',currency:'EUR'});
+const norm=s=>String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9\/\u3040-\u30ff\u4e00-\u9fff]+/g,' ').replace(/([\u3040-\u30ff\u4e00-\u9fff])(\d)/g,'$1 $2').trim();
+const words=q=>norm(q).split(' ').filter(Boolean);
+const hit=(c,w)=>/^\d+$/.test(w)?(c.lc.includes(' '+w+' ')||c.lc.includes(' '+w+'/')||c.lc.includes(' '+w.replace(/^0+(?=\d)/,'')+' ')):c.lc.includes(w);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 function load(g){
@@ -154,13 +157,13 @@ function load(g){
   if(LOADING[g])return LOADING[g];
   LOADING[g]=fetch('data/'+g+'.json').then(r=>r.json()).then(d=>{
     const byId=new Map();
-    d.cards.forEach(c=>{c.lc=(c[1]+' '+c[2]+' '+c[4]+' '+c[6]).toLowerCase();byId.set(c[0],c)});
+    d.cards.forEach(c=>{c.lc=' '+norm(c[1]+' '+c[2]+' '+c[4]+' '+c[6]+' '+c[8]+' '+(c[4].split('/')[0].replace(/^0+(?=\d)/,'')))+' ';byId.set(c[0],c)});
     DB[g]={date:d.date,cards:d.cards,byId};return DB[g];
   });
   return LOADING[g];
 }
-// riga carta: [id,nome,set,versione,numero,extra,nomeIT,soloGiapponese,trend,media7,media30,(trend,media7,media30 reverse/foil)]
-const PO=8;
+// riga carta: [id,nome,set,versione,numero,extra,nomeIT,soloGiapponese,paroleChiave,trend,media7,media30,(trend,media7,media30 reverse/foil)]
+const PO=9;
 function prices(c,h){const o=h?PO+3:PO;return{now:c[o]||null,d7:c[o+1]||null,d30:c[o+2]||null}}
 function hasHolo(c){return c.length>PO+3&&!!c[PO+3]}
 function hasStd(c){return !!c[PO]}
@@ -240,8 +243,8 @@ async function renderColl(){
 }
 function drawList(){
   const el=document.getElementById('clist');if(!el)return;
-  const w=cq.toLowerCase().trim().split(/\s+/).filter(Boolean);
-  const rs=w.length?ROWS.filter(r=>w.every(t=>r.c.lc.includes(t))):ROWS;
+  const w=words(cq);
+  const rs=w.length?ROWS.filter(r=>w.every(t=>hit(r.c,t))):ROWS;
   el.innerHTML=rs.length?rs.map(r=>`
     <div class="item click" onclick="openItem(${r.i})"><div class="stripe ${r.x.g}"></div>
       <div><div class="name">${esc(r.c[1])}</div>
@@ -439,7 +442,7 @@ function renderSearch(){
   const v=document.getElementById('view');
   v.innerHTML=`
   <div class="games">${Object.keys(GAMES).map(g=>`<button class="${g}${g===game?' on':''}" onclick="setGame('${g}')">${GAMES[g].name}</button>`).join('')}</div>
-  <input id="q" class="search" type="search" placeholder="${game==='pk'?'Es. Charizard 151, Umbreon Evolving Skies…':'Es. Luffy, Zoro, OP05-119…'}" value="${esc(query)}" autocomplete="off">
+  <input id="q" class="search" type="search" placeholder="${game==='pk'?'Es. Charizard 151, Charizard MEW 199, Umbreon Evolving Skies…':'Es. Luffy OP05, Zoro Wings of the Captain, OP05-119…'}" value="${esc(query)}" autocomplete="off">
   <div id="res"></div>`;
   const q=document.getElementById('q');
   q.addEventListener('input',()=>{query=q.value;clearTimeout(q._t);q._t=setTimeout(results,180)});
@@ -449,9 +452,9 @@ function setGame(g){game=g;query='';renderSearch()}
 async function results(){
   const r=document.getElementById('res');if(!r)return;
   if(!DB[game]){r.innerHTML='<div class="loading">Carico il catalogo '+GAMES[game].name+'…</div>';await load(game);if(tab!=='search')return}
-  const words=query.toLowerCase().trim().split(/\s+/).filter(Boolean);
-  if(!words.length||query.trim().length<2){r.innerHTML=`<p class="hint">Cerca tra ${DB[game].cards.length.toLocaleString('it-IT')} carte ${GAMES[game].name} con prezzo Cardmarket. Puoi scrivere anche il set o il numero.</p>`;return}
-  const hits=[];for(const c of DB[game].cards){if(words.every(w=>c.lc.includes(w)))hits.push(c)}
+  const ws=words(query);
+  if(!ws.length||query.trim().length<2){r.innerHTML=`<p class="hint">Cerca tra ${DB[game].cards.length.toLocaleString('it-IT')} carte ${GAMES[game].name} con prezzo Cardmarket. Scrivi il nome e, se vuoi, il nome del set, la sua sigla o il numero della carta.</p>`;return}
+  const hits=[];for(const c of DB[game].cards){if(ws.every(w=>hit(c,w)))hits.push(c)}
   hits.sort((a,b)=>Math.max(b[PO]||0,b[PO+3]||0)-Math.max(a[PO]||0,a[PO+3]||0));
   const show=hits.slice(0,60);
   r.innerHTML=`<p class="hint">${hits.length.toLocaleString('it-IT')} risultati${hits.length>60?' · mostro i 60 più preziosi, aggiungi parole per restringere':''}</p>

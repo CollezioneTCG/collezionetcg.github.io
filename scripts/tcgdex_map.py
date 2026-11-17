@@ -42,9 +42,15 @@ def parse(root, asia):
                 name = sval(nm, 'en') or sval(nm, 'it') or sval(nm, 'ja') or os.path.basename(base)
                 off = re.search(r'official\s*:\s*(\d+)', block(t, 'cardCount') or '')
                 cm = re.search(r'cardmarket\s*:\s*(\d+)', block(t, 'thirdParty') or '')
-                sets[base] = {'name': name, 'off': off.group(1) if off else None}
+                ab = re.search(r'official\s*:\s*["\']([^"\']+)["\']', block(t, 'abbreviations') or '')
+                sid = re.search(r'\bid\s*:\s*["\']([^"\']+)["\']', t)
+                kw = []
+                for k in (ab.group(1) if ab else None, sid.group(1) if sid else None, sval(nm, 'it')):
+                    if k and k.lower() not in [x.lower() for x in kw] and k.lower() != name.lower():
+                        kw.append(k)
+                sets[base] = {'name': name, 'off': off.group(1) if off else None, 'kw': ' '.join(kw)}
                 if cm:
-                    exp[int(cm.group(1))] = name
+                    exp[int(cm.group(1))] = [name, ' '.join(kw)]
     for base, info in sets.items():
         for f in os.listdir(base):
             if not f.endswith('.ts'):
@@ -72,7 +78,7 @@ def parse(root, asia):
                     found.append((int(cm), ''))
             num = local + ('/' + info['off'] if info['off'] and local.isdigit() else '')
             for cid, extra in found:
-                prod.setdefault(cid, [info['name'], num, extra, it or '', 1 if asia else 0])
+                prod.setdefault(cid, [info['name'], num, extra, it or '', 1 if asia else 0, info['kw']])
     return exp, prod
 
 
