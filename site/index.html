@@ -115,11 +115,17 @@ footer{color:var(--muted);font-size:12px;margin-top:26px;line-height:1.5}
 .plus{margin-top:6px;width:32px;height:32px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--accent);font-size:18px;font-weight:700;cursor:pointer}
 .sec .sub{font-size:12px}
 .sheet a.btn.ghost{color:var(--text)}
+.acct{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 14px;font-weight:600;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;min-height:34px}
+.acct .av{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#1a1400;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.acct .sy{font-size:12px;color:var(--muted)}
+.banner{display:flex;gap:10px;align-items:flex-start;background:#1b2636;border:1px solid #2b3d55;border-radius:14px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;cursor:pointer;line-height:1.4}
+.sheet form label{margin-top:14px}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div class="wrap">
-  <header><h1>Collezione<span>TCG</span></h1><span class="badge">Beta</span></header>
+  <header><h1>Collezione<span>TCG</span></h1><button id="acct" class="acct" onclick="openAcct()">Accedi</button></header>
   <main id="view"></main>
   <footer id="foot"></footer>
 </div>
@@ -141,12 +147,12 @@ let tab=(()=>{try{return localStorage.getItem('tcg-tab')||'home'}catch(e){return
 let albums=[]; // [{id,name}]
 const AKEY='tcg-album-v1';
 try{albums=JSON.parse(localStorage.getItem(AKEY)||'[]')}catch(e){albums=[]}
-function saveAlb(){try{localStorage.setItem(AKEY,JSON.stringify(albums))}catch(e){}}
+function saveAlb(){try{localStorage.setItem(AKEY,JSON.stringify(albums))}catch(e){}scheduleSync()}
 const albName=id=>{const a=albums.find(a=>a.id===id);return a?a.name:null};
 let coll=[];   // [{g,id,h,l,q}]
 const KEY='tcg-collezione-v1';
 try{coll=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){coll=[]}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(coll))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(coll))}catch(e){}scheduleSync()}
 
 const eur=v=>v==null?'—':v.toLocaleString('it-IT',{style:'currency',currency:'EUR'});
 const norm=s=>String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9\/\u3040-\u30ff\u4e00-\u9fff]+/g,' ').replace(/([\u3040-\u30ff\u4e00-\u9fff])(\d)/g,'$1 $2').trim();
@@ -182,7 +188,7 @@ function go(t){tab=t;try{localStorage.setItem('tcg-tab',t)}catch(e){}closeSheet(
 function render(){document.getElementById('t-coll').classList.toggle('on',tab==='coll');document.getElementById('t-home').classList.toggle('on',tab==='home');tab==='coll'?renderColl():renderHome();renderFoot()}
 function renderFoot(){
   const d=Object.values(DB)[0];
-  document.getElementById('foot').innerHTML=`Valori: Price Trend di Cardmarket, media di tutte le lingue e condizioni${d?' (aggiornato al '+d.date.split('-').reverse().join('/')+')':''}. Set e numeri delle carte Pokémon: TCGdex. Questo sito non è affiliato con Cardmarket.<br>Versione di prova: la collezione è salvata solo in questo browser.`;
+  document.getElementById('foot').innerHTML=`Valori: Price Trend di Cardmarket, media di tutte le lingue e condizioni${d?' (aggiornato al '+d.date.split('-').reverse().join('/')+')':''}. Set e numeri delle carte Pokémon: TCGdex. Questo sito non è affiliato con Cardmarket.<br>${user?'La tua collezione è salvata online nel tuo account.':'Senza account la collezione resta solo su questo dispositivo: <a class="cm" href="#" onclick="openAcct();return false">accedi per salvarla online</a>.'}`;
 }
 
 /* ---------- COLLEZIONE ---------- */
@@ -210,8 +216,9 @@ async function renderColl(){
   });
   rows.sort(sortBy==='value'?(a,b)=>b.val-a.val:sortBy==='up'?(a,b)=>(b.ch??-1e9)-(a.ch??-1e9):(a,b)=>(a.ch??1e9)-(b.ch??1e9));
   ROWS=rows;
+  const banner=(!user&&sb&&coll.length)?`<div class="banner" onclick="openAcct()">☁️ <span><b>Salva la collezione online</b><br>Crea un account gratuito per non perderla e ritrovarla su tutti i dispositivi.</span></div>`:'';
   const albTitle=albF==='all'?'':albF==='none'?'Carte senza album':albName(albF);
-  v.innerHTML=`
+  v.innerHTML=`${banner}
   <div class="albums" role="tablist" aria-label="Album">
     <button class="alb${albF==='all'?' on':''}" onclick="setAlb('all')">Tutta la collezione</button>
     ${albums.map(a=>`<button class="alb${albF===a.id?' on':''}" onclick="setAlb('${a.id}')">${esc(a.name)} <small>${coll.filter(x=>x.a===a.id).reduce((s,x)=>s+x.q,0)}</small></button>`).join('')}
@@ -365,7 +372,7 @@ function chart(vals){
 /* ---------- SCHEDA (foglio dal basso) ---------- */
 let S=null; // stato del foglio
 function showSheet(html){document.getElementById('sheet').innerHTML='<button class="x" onclick="closeSheet()" aria-label="Chiudi">✕</button>'+html;document.getElementById('ov').classList.add('show');document.getElementById('sheet').classList.add('show')}
-function closeSheet(){document.getElementById('ov').classList.remove('show');document.getElementById('sheet').classList.remove('show');S=null}
+function closeSheet(){if(pendingMerge){const r=pendingMerge;pendingMerge=null;mergeInto(r);pushRemote().then(()=>{setSync('ok');render()})}document.getElementById('ov').classList.remove('show');document.getElementById('sheet').classList.remove('show');S=null}
 function priceGrid(c,h){const p=prices(c,h);return `<label>Valore di mercato Cardmarket</label><div class="note" style="margin-top:-2px">Media di tutte le lingue e condizioni</div><div class="pgrid"><div><small>Oggi</small><b>${eur(p.now)}</b></div><div><small>Media 7 gg</small><b>${eur(p.d7)}</b></div><div><small>Media 30 gg</small><b>${eur(p.d30)}</b></div></div>`}
 function langChips(g,c,sel,fn){
   return GAMES[g].langs.map(l=>{const dis=c[7]&&l!=='ja';return `<button class="chip${sel===l?' on':''}" ${dis?'disabled':''} onclick="${fn}('${l}')">${LANGS[l].n}</button>`}).join('')
@@ -511,6 +518,151 @@ async function cardChart(g,id,h){
 }
 
 addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
+
+/* ---------- ACCOUNT E SALVATAGGIO ONLINE (Supabase) ---------- */
+const SB_URL='https://vatkouhjdfpijxolqjxy.supabase.co';
+const SB_KEY='sb_publishable_ujkfCrmPa3RouMUul8Kwng_zoca14uE';
+const SITE=location.origin+location.pathname;
+let pendingMerge=null,sb=null,user=null,syncT=null,syncState='',lastSync=null;
+try{sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}catch(e){sb=null}
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const lsSet=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}};
+
+function scheduleSync(){if(!user||!sb)return;clearTimeout(syncT);setSync('saving');syncT=setTimeout(pushRemote,800)}
+async function pushRemote(){
+  syncT=null;if(!user)return;
+  const now=new Date().toISOString();
+  const {error}=await sb.from('collezioni').upsert({user_id:user.id,dati:{v:1,coll,albums},aggiornato:now});
+  if(error){setSync('error');console.warn(error);return}
+  lastSync=now;lsSet('tcg-synced-at',now);setSync('ok');
+}
+async function pullRemote(){
+  const {data,error}=await sb.from('collezioni').select('dati,aggiornato').eq('user_id',user.id).maybeSingle();
+  if(error)throw error;return data;
+}
+function applyRemote(r){
+  coll=Array.isArray(r.dati.coll)?r.dati.coll:[];albums=Array.isArray(r.dati.albums)?r.dati.albums:[];
+  lsSet(KEY,JSON.stringify(coll));lsSet(AKEY,JSON.stringify(albums));lastSync=r.aggiornato;lsSet('tcg-synced-at',r.aggiornato);
+}
+function mergeInto(r){ // aggiunge le carte di questo dispositivo a quelle dell'account
+  const rc=Array.isArray(r.dati.coll)?r.dati.coll:[],ra=Array.isArray(r.dati.albums)?r.dati.albums:[];
+  const map={};albums.forEach(a=>{const same=ra.find(b=>b.name.toLowerCase()===a.name.toLowerCase());if(same)map[a.id]=same.id;else{ra.push(a);map[a.id]=a.id}});
+  coll.forEach(x=>{const y={...x};if(y.a)y.a=map[y.a];const e=rc.find(z=>z.g===y.g&&z.id===y.id&&z.h===y.h&&z.l===y.l&&(z.a||null)===(y.a||null));if(e)e.q+=y.q;else rc.push(y)});
+  coll=rc;albums=ra;lsSet(KEY,JSON.stringify(coll));lsSet(AKEY,JSON.stringify(albums));
+}
+async function onLogin(){
+  setSync('saving');
+  let r;try{r=await pullRemote()}catch(e){setSync('error');return}
+  const hasRemote=r&&r.dati&&((r.dati.coll||[]).length||(r.dati.albums||[]).length);
+  const hasLocal=coll.length||albums.length;
+  const mine=lsGet('tcg-owner')===user.id;
+  lsSet('tcg-owner',user.id);
+  if(mine){ if(r)applyRemote(r);else await pushRemote(); }
+  else if(hasLocal&&hasRemote){ askMerge(r);return }
+  else if(hasLocal){ await pushRemote() }
+  else if(r){ applyRemote(r) }
+  setSync('ok');render();
+}
+function askMerge(r){
+  const n=coll.reduce((s,x)=>s+x.q,0);
+  S={mode:'merge'};pendingMerge=r;
+  showSheet(`<h3>Carte su questo dispositivo</h3>
+   <p class="note" style="font-size:14px;color:var(--text)">Su questo dispositivo ci ${n===1?'è <b>1 carta</b> che non è':'sono <b>'+n+' carte</b> che non sono'} ancora nel tuo account. Il tuo account ha già una collezione salvata.</p>
+   <div style="margin-top:14px"><button class="btn full" id="m-yes">Aggiungile al mio account</button></div>
+   <div style="margin-top:8px"><button class="btn ghost full" id="m-no">No, usa solo la collezione dell'account</button></div>`);
+  document.getElementById('m-yes').onclick=async()=>{pendingMerge=null;mergeInto(r);closeSheet();await pushRemote();render();toast('Collezioni unite ✓')};
+  document.getElementById('m-no').onclick=()=>{pendingMerge=null;applyRemote(r);closeSheet();setSync('ok');render()};
+}
+function onLogout(){
+  coll=[];albums=[];lsSet(KEY,null);lsSet(AKEY,null);lsSet('tcg-owner',null);lsSet('tcg-synced-at',null);
+  albF='all';langF='all';setSync('');render();
+}
+function setSync(s){syncState=s;updateHeader();if(S&&S.mode==='acct')drawAcct()}
+function updateHeader(){
+  const b=document.getElementById('acct');if(!b)return;
+  if(user){const dot=syncState==='saving'?'⏳':syncState==='error'?'⚠️':'✓';b.innerHTML=`<span class="av">${esc((user.email||'?')[0].toUpperCase())}</span><span class="sy">${dot}</span>`;b.setAttribute('aria-label','Il tuo account')}
+  else{b.textContent='Accedi';b.setAttribute('aria-label','Accedi o crea un account')}
+}
+if(sb){
+  sb.auth.onAuthStateChange((ev,session)=>{
+    const u=session?session.user:null;
+    if(ev==='PASSWORD_RECOVERY')setTimeout(openNewPass,0);
+    if(u&&(!user||user.id!==u.id)){user=u;setTimeout(onLogin,0)}
+    else if(!u&&user){user=null;setTimeout(onLogout,0)}
+    else if(u)user=u;
+    updateHeader();
+  });
+  document.addEventListener('visibilitychange',async()=>{
+    if(document.visibilityState!=='visible'||!user||syncT)return;
+    try{const r=await pullRemote();if(r&&r.aggiornato!==lastSync&&!syncT){applyRemote(r);render()}}catch(e){}
+  });
+}
+
+/* Foglio account */
+let acctMode='login',acctMsg='';
+function openAcct(){S={mode:'acct'};acctMsg='';drawAcct()}
+function drawAcct(){
+  if(!sb){showSheet(`<h3>Account</h3><p class="note">Il servizio account non è raggiungibile in questo momento. Riprova più tardi.</p>`);return}
+  if(user){
+    const st=syncState==='saving'?'⏳ Salvataggio in corso…':syncState==='error'?'⚠️ Salvataggio non riuscito: controlla la connessione, riproveremo alla prossima modifica.':'✓ Collezione salvata online';
+    showSheet(`<h3>Il tuo account</h3><div class="meta">${esc(user.email)}</div>
+     <p class="note" style="font-size:14px;color:var(--text);margin-top:14px">${st}</p>
+     <p class="note">Entra con la stessa email da qualsiasi telefono o computer per ritrovare collezione e album.</p>
+     <div style="margin-top:16px"><button class="btn ghost full" onclick="logout()">Esci</button></div>`);return}
+  const reg=acctMode==='signup',fg=acctMode==='forgot';
+  showSheet(`<h3>${fg?'Recupera la password':reg?'Crea un account':'Accedi'}</h3>
+   <p class="note">${fg?'Ti mandiamo un\'email con il link per scegliere una nuova password.':'Salva la collezione online e ritrovala su tutti i tuoi dispositivi. Senza account resta solo su questo dispositivo.'}</p>
+   ${fg?'':`<div class="chips" style="margin-top:12px"><button class="chip${!reg?' on':''}" onclick="acctMode='login';acctMsg='';drawAcct()">Ho già un account</button><button class="chip${reg?' on':''}" onclick="acctMode='signup';acctMsg='';drawAcct()">Sono nuovo</button></div>`}
+   <form id="af" novalidate>
+    <label for="ae">Email</label><input id="ae" class="search" type="email" autocomplete="email" inputmode="email" required>
+    ${fg?'':`<label for="ap">Password${reg?' (almeno 8 caratteri)':''}</label><input id="ap" class="search" type="password" autocomplete="${reg?'new-password':'current-password'}" required>`}
+    <div id="amsg" class="note" style="font-size:14px;color:var(--text);min-height:1em;margin-top:10px">${acctMsg}</div>
+    <div style="margin-top:12px"><button class="btn full" type="submit" id="ab">${fg?'Mandami il link':reg?'Crea account':'Accedi'}</button></div>
+   </form>
+   <div style="margin-top:10px;text-align:center">${fg?`<a class="cm" href="#" onclick="acctMode='login';acctMsg='';drawAcct();return false">← Torna all'accesso</a>`:reg?'':`<a class="cm" href="#" onclick="acctMode='forgot';acctMsg='';drawAcct();return false">Password dimenticata?</a>`}</div>`);
+  const em=lsGet('tcg-last-email');if(em)document.getElementById('ae').value=em;
+  document.getElementById('af').addEventListener('submit',acctSubmit);
+}
+function itErr(e){
+  const m=(e&&e.message||'').toLowerCase();
+  if(m.includes('invalid login'))return 'Email o password sbagliate.';
+  if(m.includes('not confirmed'))return 'Prima conferma l\'email: apri il link che ti abbiamo mandato, poi accedi.';
+  if(m.includes('already registered')||m.includes('already been registered'))return 'Esiste già un account con questa email: scegli "Ho già un account".';
+  if(m.includes('rate limit')||m.includes('too many'))return 'Troppi tentativi ravvicinati: riprova tra qualche minuto.';
+  if(m.includes('password'))return 'La password non va bene: usa almeno 8 caratteri.';
+  if(m.includes('email'))return 'Controlla di aver scritto bene l\'email.';
+  return 'Qualcosa non ha funzionato. Riprova tra poco.';
+}
+async function acctSubmit(ev){
+  ev.preventDefault();
+  const email=document.getElementById('ae').value.trim(),pe=document.getElementById('ap'),pass=pe?pe.value:'';
+  const msg=t=>{acctMsg=t;const m=document.getElementById('amsg');if(m)m.textContent=t};
+  if(!/^\S+@\S+\.\S+$/.test(email))return msg('Scrivi un indirizzo email valido.');
+  if(acctMode!=='forgot'&&pass.length<(acctMode==='signup'?8:1))return msg(acctMode==='signup'?'La password deve avere almeno 8 caratteri.':'Scrivi la password.');
+  lsSet('tcg-last-email',email);
+  const b=document.getElementById('ab');b.disabled=true;b.textContent='Un attimo…';
+  try{
+    if(acctMode==='login'){const {error}=await sb.auth.signInWithPassword({email,password:pass});if(error)throw error;closeSheet();toast('Bentornato ✓')}
+    else if(acctMode==='signup'){
+      const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:SITE}});if(error)throw error;
+      if(data.session){closeSheet();toast('Account creato ✓')}
+      else{acctMode='login';acctMsg='📧 Ti abbiamo mandato un\'email: apri il link per confermare l\'account, poi torna qui e accedi.';drawAcct()}
+    } else {
+      const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:SITE});if(error)throw error;
+      msg('📧 Se l\'email è registrata, ti è arrivato il link per scegliere una nuova password.');b.disabled=false;b.textContent='Mandami il link';
+    }
+  }catch(e){msg(itErr(e));b.disabled=false;b.textContent=acctMode==='login'?'Accedi':acctMode==='signup'?'Crea account':'Mandami il link'}
+}
+function openNewPass(){
+  S={mode:'newpass'};
+  showSheet(`<h3>Scegli una nuova password</h3><form id="npf"><label for="np">Nuova password (almeno 8 caratteri)</label><input id="np" class="search" type="password" autocomplete="new-password"><div id="npm" class="note" style="font-size:14px;color:var(--text);margin-top:10px"></div><div style="margin-top:12px"><button class="btn full" type="submit">Salva password</button></div></form>`);
+  document.getElementById('npf').addEventListener('submit',async ev=>{ev.preventDefault();const p=document.getElementById('np').value;const m=document.getElementById('npm');
+    if(p.length<8){m.textContent='La password deve avere almeno 8 caratteri.';return}
+    const {error}=await sb.auth.updateUser({password:p});if(error){m.textContent=itErr(error);return}closeSheet();toast('Password aggiornata ✓')});
+}
+async function logout(){await sb.auth.signOut();closeSheet();toast('Sei uscito')}
+
+updateHeader();
 render();
 </script>
 </body>
