@@ -176,7 +176,7 @@ function load(g){
 }
 // riga carta: [id,nome,set,versione,numero,extra,nomeIT,soloGiapponese,paroleChiave,immagine,trend,media7,media30,(trend,media7,media30 reverse/foil)]
 const PO=10;
-const IMG=(c,q)=>!c[9]?'':c[9].startsWith('B:')?'https://en.onepiece-cardgame.com/images/cardlist/card/'+encodeURIComponent(c[9].slice(2))+'.png':'https://assets.tcgdex.net/'+c[9].split('/').map(encodeURIComponent).join('/')+'/'+q+'.webp';
+const IMG=(c,q)=>!c[9]?'':c[9].startsWith('B:')?'img/op/'+encodeURIComponent(c[9].slice(2))+'.webp':'https://assets.tcgdex.net/'+c[9].split('/').map(encodeURIComponent).join('/')+'/'+q+'.webp';
 const thumb=c=>c[9]?`<img class="th" src="${IMG(c,'low')}" alt="" loading="lazy" onerror="this.remove()">`:'';
 const bigImg=(c,w)=>c[9]?`<div class="bigwrap"><img class="big" style="max-width:${w||220}px" src="${IMG(c,'high')}" alt="Immagine della carta" onerror="this.parentNode.remove()"></div>`:'';
 function prices(c,h){const o=h?PO+3:PO;return{now:c[o]||null,d7:c[o+1]||null,d30:c[o+2]||null}}

@@ -52,6 +52,24 @@ jobs:
       - name: Scarica i prezzi Cardmarket e aggiorna lo storico
         run: python3 scripts/build_data.py --out _site/data --history dati/storico --tcgdex dati/tcgdex/pk_tcgdex.json
 
+      - name: Copia leggera delle immagini One Piece (ramo "immagini")
+        run: |
+          pip install -q pillow
+          if git ls-remote --exit-code --heads origin immagini >/dev/null; then
+            git clone -q --depth 1 --branch immagini "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" img
+          else
+            mkdir img && cd img && git init -q -b immagini && git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" && cd ..
+          fi
+          python3 scripts/op_images.py _site/data/op.json img/op 2500
+          cd img
+          git config user.name "aggiornamento-prezzi"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -q -m "Immagini al $(date -u +%F)"
+            git push -q origin immagini
+          fi
+
       - name: Salva lo storico nel ramo "storico"
         run: |
           cd dati
@@ -66,6 +84,7 @@ jobs:
         run: |
           cp -r site/. _site/
           cp -r dati/storico _site/storico
+          mkdir -p _site/img && cp -r img/op _site/img/op
           touch _site/.nojekyll
 
       - uses: actions/configure-pages@v5
