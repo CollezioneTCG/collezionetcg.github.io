@@ -92,7 +92,7 @@ def main(src, out):
                 exp.setdefault(k, v)
             for k, v in p.items():
                 prod.setdefault(k, v)
-    json.dump({'exp': exp, 'prod': prod}, open(out, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
+    json.dump({'v': 2, 'exp': exp, 'prod': prod}, open(out, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
     print(f'TCGdex: {len(exp)} espansioni, {len(prod)} carte collegate')
 
 

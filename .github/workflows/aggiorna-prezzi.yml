@@ -37,9 +37,9 @@ jobs:
           fi
           mkdir -p dati/storico dati/tcgdex
 
-      - name: Aggiorna il catalogo TCGdex (il lunedì o se manca)
+      - name: Aggiorna il catalogo TCGdex (il lunedì, o se manca o è di una versione vecchia)
         run: |
-          if [ "$(date -u +%u)" = "1" ] || [ ! -f dati/tcgdex/pk_tcgdex.json ]; then
+          if [ "$(date -u +%u)" = "1" ] || ! grep -q '"v":2' dati/tcgdex/pk_tcgdex.json 2>/dev/null; then
             mkdir -p /tmp/tcgdex
             ( cd /tmp/tcgdex \
               && curl -sSfL -o db.zip https://codeload.github.com/tcgdex/cards-database/zip/refs/heads/master \
