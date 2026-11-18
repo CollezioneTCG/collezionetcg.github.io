@@ -124,6 +124,27 @@ footer{color:var(--muted);font-size:12px;margin-top:26px;line-height:1.5}
 .th{width:46px;height:64px;border-radius:4px;object-fit:cover;flex:0 0 auto;background:var(--panel2)}
 .bigwrap{text-align:center;margin:4px 0 12px}
 .big{width:100%;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.45);aspect-ratio:600/825;background:var(--panel2)}
+.bar{height:6px;border-radius:4px;background:var(--panel2);margin-top:6px;overflow:hidden}
+.bar span{display:block;height:100%;background:var(--up);border-radius:4px}
+.setrow .right{color:var(--muted);font-size:22px}
+.back{background:none;border:0;color:var(--accent);font-weight:600;padding:4px 0 10px;cursor:pointer;font-size:15px}
+.sett{font:700 22px 'Space Grotesk',sans-serif;margin:2px 0 6px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media (min-width:560px){.grid{grid-template-columns:repeat(5,1fr)}}
+.tile{position:relative;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:4px 4px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text)}
+.tile img,.tile .ph{width:100%;aspect-ratio:600/825;border-radius:6px;object-fit:cover;background:var(--panel2)}
+.tile .ph{display:flex;align-items:center;justify-content:center;font:700 15px 'Space Grotesk',sans-serif;color:var(--muted)}
+.tile:not(.has) img,.tile:not(.has) .ph{opacity:.35;filter:grayscale(1)}
+.tile.has{border-color:var(--up)}
+.tile .ok{position:absolute;top:8px;right:8px;background:var(--up);color:#062b1a;font-style:normal;font-weight:700;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:13px}
+.tile .tn{font-size:12px;font-weight:600}
+.tile .tp{font-size:11px;color:var(--muted);min-height:1em}
+.tag.sealed{background:#2d2614;color:#f5c542}
+.pl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.pl div{background:var(--panel2);border-radius:12px;padding:8px 10px}
+.pl small{color:var(--muted);font-size:11px;display:block}
+.pl b{font:700 14px 'Space Grotesk',sans-serif}
+nav button{font-size:14px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -135,7 +156,8 @@ footer{color:var(--muted);font-size:12px;margin-top:26px;line-height:1.5}
 </div>
 <nav>
   <button id="t-home" onclick="go('home')">🔎 Prezzi</button>
-  <button id="t-coll" onclick="go('coll')">📁 La mia collezione</button>
+  <button id="t-sets" onclick="go('sets')">📚 Set</button>
+  <button id="t-coll" onclick="go('coll')">📁 Collezione</button>
 </nav>
 <div class="ov" id="ov" onclick="closeSheet()"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
@@ -183,16 +205,16 @@ function prices(c,h){const o=h?PO+3:PO;return{now:c[o]||null,d7:c[o+1]||null,d30
 function hasHolo(c){return c.length>PO+3&&!!c[PO+3]}
 function hasStd(c){return !!c[PO]}
 function setLabel(g,c){return c[2]+(c[4]&&g==='pk'?' · '+c[4]:'')}
-function tags(g,c){return (c[5]?`<span class="tag var">${esc(c[5])}</span>`:'')+(c[3]?`<span class="tag">Versione ${c[3]}</span>`:'')}
+function tags(g,c){return (c[7]===2?`<span class="tag sealed">📦 Sigillato</span>`:'')+(c[5]?`<span class="tag var">${esc(c[5])}</span>`:'')+(c[3]?`<span class="tag">Versione ${c[3]}</span>`:'')}
 function itName(c){return c[6]?`<div class="meta">IT: ${esc(c[6])}</div>`:''}
-function defLang(g,c){return c[7]?'ja':g==='pk'?'it':'en'}
+function defLang(g,c){return c[7]===1?'ja':g==='pk'?'it':'en'}
 function cmLink(g,id,l){return 'https://www.cardmarket.com/it/'+GAMES[g].slug+'/Products?idProduct='+id+(l?'&language='+LANGS[l].cm:'')}
 function pct(a,b){if(!a||!b)return null;return (a-b)/b*100}
 function deltaHTML(p,suffix){if(p==null)return '<span class="flat">—</span>';const c=p>0.5?'up':p<-0.5?'down':'flat';return `<span class="${c}">${p>0?'▲':p<0?'▼':'•'} ${Math.abs(p).toFixed(1).replace('.',',')}%${suffix||''}</span>`}
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),1400)}
 
 function go(t){tab=t;try{localStorage.setItem('tcg-tab',t)}catch(e){}closeSheet();render();window.scrollTo(0,0)}
-function render(){document.getElementById('t-coll').classList.toggle('on',tab==='coll');document.getElementById('t-home').classList.toggle('on',tab==='home');tab==='coll'?renderColl():renderHome();renderFoot()}
+function render(){document.getElementById('t-coll').classList.toggle('on',tab==='coll');document.getElementById('t-home').classList.toggle('on',tab==='home');document.getElementById('t-sets').classList.toggle('on',tab==='sets');tab==='coll'?renderColl():tab==='sets'?renderSets():renderHome();renderFoot()}
 function renderFoot(){
   const d=Object.values(DB)[0];
   document.getElementById('foot').innerHTML=`Valori: Price Trend di Cardmarket, media di tutte le lingue e condizioni${d?' (aggiornato al '+d.date.split('-').reverse().join('/')+')':''}. Set, numeri e immagini delle carte Pokémon: TCGdex. Immagini Pokémon © Pokémon/Nintendo/Creatures/GAME FREAK. Immagini One Piece © Eiichiro Oda/Shueisha, Toei Animation, Bandai. Questo sito non è affiliato con Cardmarket.<br>${user?'La tua collezione è salvata online nel tuo account.':'Senza account la collezione resta solo su questo dispositivo: <a class="cm" href="#" onclick="openAcct();return false">accedi per salvarla online</a>.'}`;
@@ -211,7 +233,7 @@ async function renderColl(){
   const usedL=[...new Set(coll.filter(inAlb).map(x=>x.l))];
   if(langF!=='all'&&!usedL.includes(langF))langF='all';
   const noAlb=coll.some(x=>!x.a);
-  let tot={now:0,d7:0,d30:0},per={pk:0,op:0},rows=[],n=0;
+  let tot={now:0,d7:0,d30:0},per={pk:0,op:0},rows=[],n=0,spent=0,spentVal=0,nPP=0;
   coll.forEach((x,i)=>{
     if(!inAlb(x)||(langF!=='all'&&x.l!==langF))return;
     const c=DB[x.g].byId.get(x.id);if(!c)return;
@@ -219,6 +241,7 @@ async function renderColl(){
     const u=own?x.mp:(p.now||0),u7=own?x.mp:(p.d7||p.now||0),u30=own?x.mp:(p.d30||p.d7||p.now||0);
     const now=u*x.q;n+=x.q;
     tot.now+=now;tot.d7+=u7*x.q;tot.d30+=u30*x.q;per[x.g]+=now;
+    if(x.pp!=null){spent+=x.pp*x.q;spentVal+=now;nPP+=x.q}
     rows.push({x,i,c,p,own,unit:u,val:now,ch:own?null:pct(p.now,p.d30)});
   });
   rows.sort(sortBy==='value'?(a,b)=>b.val-a.val:sortBy==='up'?(a,b)=>(b.ch??-1e9)-(a.ch??-1e9):(a,b)=>(a.ch??1e9)-(b.ch??1e9));
@@ -239,6 +262,7 @@ async function renderColl(){
     <div class="lbl">Valore stimato ${albF==='all'?'della collezione':albF==='none'?'carte senza album':'album “'+esc(albTitle)+'”'}${langF==='all'?'':' · '+LANGS[langF].n.toLowerCase()} · ${n} cart${n===1?'a':'e'} <button class="info" onclick="openInfo()" aria-label="Come calcoliamo il valore">ⓘ</button></div>
     <div class="val">${eur(tot.now)}</div>
     <div class="delta">${deltaHTML(pct(tot.now,tot.d30),' rispetto alla media 30 giorni')}</div>
+    ${nPP?`<div class="pl"><div><small>Hai speso</small><b>${eur(spent)}</b></div><div><small>Oggi valgono</small><b>${eur(spentVal)}</b></div><div><small>${spentVal>=spent?'Guadagno':'Perdita'}</small><b class="${spentVal>=spent?'up':'down'}">${spentVal>=spent?'+':'−'}${eur(Math.abs(spentVal-spent))} (${spentVal>=spent?'+':'−'}${(spent?((spentVal-spent)/spent*100):0).toFixed(1).replace('.',',').replace('-','')}%)</b></div></div>${nPP<n?`<div class="note">Calcolato sulle ${nPP} carte di cui hai inserito il prezzo pagato.</div>`:''}`:''}
     <div class="chart" id="hchart">${chart([tot.d30,tot.d7,tot.now])}</div>
     <div class="split">
       <div><small>Pokémon</small><b>${eur(per.pk)}</b></div>
@@ -382,7 +406,7 @@ function showSheet(html){document.getElementById('sheet').innerHTML='<button cla
 function closeSheet(){if(pendingMerge){const r=pendingMerge;pendingMerge=null;mergeInto(r);pushRemote().then(()=>{setSync('ok');render()})}document.getElementById('ov').classList.remove('show');document.getElementById('sheet').classList.remove('show');S=null}
 function priceGrid(c,h){const p=prices(c,h);return `<label>Valore di mercato Cardmarket</label><div class="note" style="margin-top:-2px">Media di tutte le lingue e condizioni</div><div class="pgrid"><div><small>Oggi</small><b>${eur(p.now)}</b></div><div><small>Media 7 gg</small><b>${eur(p.d7)}</b></div><div><small>Media 30 gg</small><b>${eur(p.d30)}</b></div></div>`}
 function langChips(g,c,sel,fn){
-  return GAMES[g].langs.map(l=>{const dis=c[7]&&l!=='ja';return `<button class="chip${sel===l?' on':''}" ${dis?'disabled':''} onclick="${fn}('${l}')">${LANGS[l].n}</button>`}).join('')
+  return GAMES[g].langs.map(l=>{const dis=c[7]===1&&l!=='ja';return `<button class="chip${sel===l?' on':''}" ${dis?'disabled':''} onclick="${fn}('${l}')">${LANGS[l].n}</button>`}).join('')
 }
 function verChips(g,c,sel,fn){
   const o=[];if(hasStd(c))o.push([0,'Standard']);if(hasHolo(c))o.push([1,GAMES[g].hl]);
@@ -399,19 +423,22 @@ function drawAdd(){
   const c=DB[S.g].byId.get(S.id);
   showSheet(`${bigImg(c,150)}<h3>${esc(c[1])}</h3><div class="meta"><span class="tag">${GAMES[S.g].name} · ${esc(setLabel(S.g,c))}</span>${tags(S.g,c)}</div>${itName(c)}
    <label>Lingua</label><div class="chips">${langChips(S.g,c,S.l,'aSetL')}</div>
-   ${c[7]?'<div class="note" style="margin-top:-6px">Questa carta esiste solo in versione giapponese.</div>':''}
+   ${c[7]===1?'<div class="note" style="margin-top:-6px">Questa carta esiste solo in versione giapponese.</div>':''}
    <label>Versione</label><div class="chips">${verChips(S.g,c,S.h,'aSetH')}</div>
    ${priceGrid(c,S.h)}
    <div class="row"><span>Quantità</span><div class="qty big"><button onclick="aQ(-1)" aria-label="Meno">−</button><span>${S.q}</span><button onclick="aQ(1)" aria-label="Più">+</button></div></div>
    <label>Album</label><div class="chips">${albChips(S.a,'aSetA')}</div>
+   <label>Prezzo pagato per copia (facoltativo)</label><input id="app" class="search" type="text" inputmode="decimal" placeholder="Es. 25,00" value="${S.pp!=null?String(S.pp).replace('.',','):''}" oninput="S.pp=this.value">
    <div style="margin-top:16px"><button class="btn full" onclick="confirmAdd()">Aggiungi${S.a?' in “'+esc(albName(S.a))+'”':' alla collezione'}</button></div>`);
 }
 function aSetA(a){S.a=a;drawAdd()} function aSetL(l){S.l=l;drawAdd()} function aSetH(h){S.h=h;drawAdd()} function aQ(d){S.q=Math.max(1,S.q+d);drawAdd()}
 function confirmAdd(){
-  const e=coll.find(x=>x.g===S.g&&x.id===S.id&&x.h===S.h&&x.l===S.l&&(x.a||null)===S.a);
-  if(e)e.q+=S.q;else{const o={g:S.g,id:S.id,h:S.h,l:S.l,q:S.q};if(S.a)o.a=S.a;coll.push(o)}
+  const ppn=S.pp!=null&&String(S.pp).trim()!==''?parseFloat(String(S.pp).replace(',','.')):null;
+  if(ppn!=null&&(isNaN(ppn)||ppn<0)){toast('Prezzo pagato non valido');return}
+  const e=coll.find(x=>x.g===S.g&&x.id===S.id&&x.h===S.h&&x.l===S.l&&(x.a||null)===S.a&&(ppn==null||x.pp==null||x.pp===ppn));
+  if(e){e.q+=S.q;if(ppn!=null)e.pp=Math.round(ppn*100)/100}else{const o={g:S.g,id:S.id,h:S.h,l:S.l,q:S.q};if(S.a)o.a=S.a;if(ppn!=null)o.pp=Math.round(ppn*100)/100;coll.push(o)}
   lastAlb=S.a;const an=S.a?albName(S.a):null;
-  save();closeSheet();toast(an?'Aggiunta in “'+an+'” ✓':'Aggiunta alla collezione ✓');
+  save();closeSheet();toast(an?'Aggiunta in “'+an+'” ✓':'Aggiunta alla collezione ✓');if(tab==='sets'&&setOpen){const y=scrollY;renderSetView();scrollTo(0,y)}
 }
 
 // Dettaglio carta in collezione
@@ -426,6 +453,9 @@ function drawItem(){
    <div class="note">Variazione in 30 giorni: ${deltaHTML(pct(p.now,p.d30))}</div>
    <div id="ichart" class="chart"></div>
    <div class="row"><span>Copie possedute</span><div class="qty big"><button onclick="iQ(-1)" aria-label="Meno">−</button><span>${x.q}</span><button onclick="iQ(1)" aria-label="Più">+</button></div></div>
+   <label>Prezzo pagato (per copia)</label>
+   <div class="own-row"><input id="pp" class="search" type="text" inputmode="decimal" placeholder="Es. 25,00" value="${x.pp!=null?x.pp.toFixed(2).replace('.',','):''}"><button class="btn sm" onclick="setPP()">Salva</button>${x.pp!=null?'<button class="btn sm ghost" onclick="clearPP()">Cancella</button>':''}</div>
+   ${x.pp!=null?(()=>{const v=(x.mp!=null?x.mp:(p.now||0)),d=(v-x.pp)*x.q;return `<div class="note">${d>=0?'Guadagno':'Perdita'}: <b class="${d>=0?'up':'down'}">${d>=0?'+':'−'}${eur(Math.abs(d))}</b>${x.pp?` (${((v-x.pp)/x.pp*100).toFixed(1).replace('.',',')}%)`:''} su ${x.q} cop${x.q===1?'ia':'ie'}</div>`})():'<div class="note">Facoltativo: serve a calcolare quanto hai guadagnato o perso.</div>'}
    <label>Il mio prezzo (per copia)</label>
    <div class="own-row"><input id="mp" class="search" type="text" inputmode="decimal" placeholder="Es. ${p.now?p.now.toFixed(2).replace('.',','):'10,00'}" value="${x.mp!=null?x.mp.toFixed(2).replace('.',','):''}"><button class="btn sm" onclick="setMP()">Salva</button>${x.mp!=null?'<button class="btn sm ghost" onclick="clearMP()">Usa Cardmarket</button>':''}</div>
    <div class="note">${x.mp!=null?'Nel totale usiamo il tuo prezzo al posto di quello di Cardmarket.':'Facoltativo: se sai che la tua copia vale di più o di meno (lingua, condizione…), inserisci il tuo valore.'}</div>
@@ -444,6 +474,8 @@ function iSetL(l){coll[S.i].l=l;merge();save();drawItem();renderColl()}
 function iSetH(h){coll[S.i].h=h;merge();save();drawItem();renderColl()}
 function iQ(d){const x=coll[S.i];x.q+=d;if(x.q<=0){iRemove();return}save();drawItem();renderColl()}
 function setMP(){const v=document.getElementById('mp').value.replace(',','.');const n=parseFloat(v);if(isNaN(n)||n<0){toast('Inserisci un prezzo valido');return}coll[S.i].mp=Math.round(n*100)/100;save();drawItem();renderColl();toast('Prezzo salvato ✓')}
+function setPP(){const n=parseFloat(document.getElementById('pp').value.replace(',','.'));if(isNaN(n)||n<0){toast('Inserisci un prezzo valido');return}coll[S.i].pp=Math.round(n*100)/100;save();drawItem();renderColl();toast('Prezzo pagato salvato ✓')}
+function clearPP(){delete coll[S.i].pp;save();drawItem();renderColl()}
 function clearMP(){delete coll[S.i].mp;save();drawItem();renderColl()}
 function openInfo(){S={mode:'info'};showSheet(`<h3>Come calcoliamo il valore</h3>
  <p class="note" style="font-size:14px;color:var(--text)">Per ogni carta usiamo il <b>Price Trend di Cardmarket</b>, aggiornato ogni giorno.</p>
@@ -453,20 +485,98 @@ function openInfo(){S={mode:'info'};showSheet(`<h3>Come calcoliamo il valore</h3
  <div style="margin-top:14px"><button class="btn full" onclick="closeSheet()">Ho capito</button></div>`)}
 function iRemove(){coll.splice(S.i,1);save();closeSheet();renderColl();toast('Carta rimossa')}
 
+/* ---------- SET: CHECKLIST ---------- */
+const SETS={};let setOpen=null,setQ='',setF='all',quick=false,setLang='en';
+const numKey=(g,c)=>g==='pk'?c[4].split('/')[0]:c[4];
+function buildSets(g){
+  if(SETS[g])return SETS[g];
+  const m=new Map();
+  for(const c of DB[g].cards){
+    if(c[7]===2||!c[4])continue;
+    let key,name;
+    if(g==='pk'){if(c[2].startsWith('Set #'))continue;key=c[2];name=c[2]}
+    else{const mm=/^([A-Z]+\d*)-\d+$/.exec(c[4]);if(!mm||mm[1]==='P')continue;key=mm[1];name=c[2]}
+    let s=m.get(key);if(!s){s={key,name,nums:new Map(),order:c[0],jp:0,n:0};m.set(key,s)}
+    s.n++;if(c[7]===1)s.jp++;
+    s.order=Math.min(s.order,c[0]);
+    const nk=numKey(g,c);let e=s.nums.get(nk);if(!e){e={num:nk,ids:[],rep:c};s.nums.set(nk,e)}
+    e.ids.push(c[0]);
+    const score=x=>(x[9]&&!/_p\d/.test(x[9])?0:x[9]?1:2)*10+(x[3]>1?1:0);
+    if(score(c)<score(e.rep)||(score(c)===score(e.rep)&&c[0]<e.rep[0]))e.rep=c;
+  }
+  const list=[...m.values()].filter(s=>s.nums.size>=5).map(s=>{
+    s.list=[...s.nums.values()].sort((a,b)=>a.num.localeCompare(b.num,undefined,{numeric:true}));return s});
+  list.sort((a,b)=>b.order-a.order);
+  return SETS[g]=list;
+}
+function ownedIn(g,s){const ids=new Set(coll.filter(x=>x.g===g).map(x=>x.id));let n=0;s.list.forEach(e=>{if(e.ids.some(i=>ids.has(i)))n++});return n}
+function bar(p){return `<div class="bar"><span style="width:${Math.max(p>0?3:0,p).toFixed(1)}%"></span></div>`}
+async function renderSets(){
+  const v=document.getElementById('view');
+  if(!DB[game]){v.innerHTML='<div class="loading">Carico i set…</div>';await load(game);if(tab!=='sets')return}
+  if(setOpen){renderSetView();return}
+  const all=buildSets(game);
+  v.innerHTML=`<section class="intro"><h2>Set</h2><p>Apri un set, segna le carte che hai e guarda quanto ti manca per completarlo.</p></section>
+  <div class="games">${Object.keys(GAMES).map(g=>`<button class="${g}${g===game?' on':''}" onclick="game='${g}';setQ='';renderSets()">${GAMES[g].name}</button>`).join('')}</div>
+  ${game==='pk'?`<div class="chips">${[['en','Set internazionali'],['ja','Set giapponesi']].map(([k,l])=>`<button class="chip${setLang===k?' on':''}" onclick="setLang='${k}';renderSets()">${l}</button>`).join('')}</div>`:''}
+  <input id="sq" class="search" type="search" placeholder="Cerca un set…" value="${esc(setQ)}" autocomplete="off"><div id="slist"></div>`;
+  const q=document.getElementById('sq');q.addEventListener('input',()=>{setQ=q.value;drawSetList()});drawSetList();
+}
+function drawSetList(){
+  const el=document.getElementById('slist');if(!el)return;
+  const ws=words(setQ),all=buildSets(game).filter(s=>(game!=='pk'||(setLang==='ja')===(s.jp>s.n/2))&&ws.every(w=>norm(s.name+' '+s.key).includes(w)));
+  const row=s=>{const o=ownedIn(game,s),t=s.list.length,p=o/t*100;return `<div class="item click setrow" onclick="openSet('${esc(s.key).replace(/'/g,"\\'")}')"><div class="stripe ${game}"></div><div><div class="name">${esc(s.name)}</div><div class="meta">${o}/${t} carte${o?` · ${p.toFixed(0)}%`:''}</div>${bar(p)}</div><div class="right">›</div></div>`};
+  const mine=all.filter(s=>ownedIn(game,s)>0);
+  el.innerHTML=(mine.length&&!ws.length?`<div class="sec"><h2>I tuoi set</h2></div><div class="list">${mine.map(row).join('')}</div><div class="sec"><h2>Tutti i set</h2><span class="sub">dal più recente</span></div>`:'')+
+   `<div class="list">${all.slice(0,ws.length?200:300).map(row).join('')||'<p class="hint">Nessun set trovato.</p>'}</div>`;
+}
+function openSet(k){setOpen=k;setF='all';renderSetView();window.scrollTo(0,0)}
+function renderSetView(){
+  const v=document.getElementById('view'),s=buildSets(game).find(x=>x.key===setOpen);
+  if(!s){setOpen=null;renderSets();return}
+  const ids=new Set(coll.filter(x=>x.g===game).map(x=>x.id));
+  const t=s.list.length;let o=0,full=0,mineV=0;
+  s.list.forEach(e=>{const has=e.ids.some(i=>ids.has(i));if(has)o++;const p=prices(e.rep,hasStd(e.rep)?0:1).now||0;full+=p});
+  coll.forEach(x=>{if(x.g===game&&s.list.some(e=>e.ids.includes(x.id))){const c=DB[game].byId.get(x.id);mineV+=(x.mp!=null?x.mp:(prices(c,x.h).now||0))*x.q}});
+  const shown=s.list.filter(e=>{const has=e.ids.some(i=>ids.has(i));return setF==='all'||(setF==='miss'?!has:has)});
+  v.innerHTML=`<button class="back" onclick="setOpen=null;renderSets()">‹ Tutti i set</button>
+  <section class="hero"><div class="lbl">${GAMES[game].name}</div><h2 class="sett">${esc(s.name)}</h2>
+   <div class="delta">${o}/${t} carte · ${(o/t*100).toFixed(0)}%</div>${bar(o/t*100)}
+   <div class="split"><div><small>Le tue carte del set</small><b>${eur(mineV)}</b></div><div><small>Set completo (versione base)</small><b>${eur(full)}</b></div></div></section>
+  <div class="chips" style="margin-top:14px">${[['all','Tutte'],['miss','Mi mancano'],['own','Le ho']].map(([k,l])=>`<button class="chip${setF===k?' on':''}" onclick="setF='${k}';renderSetView()">${l}</button>`).join('')}
+   <button class="chip${quick?' on':''}" onclick="quick=!quick;renderSetView()" style="margin-left:auto">⚡ Rapida ${quick?'ON':'OFF'}</button></div>
+  <p class="hint" style="margin-top:0">${quick?'Aggiunta rapida: tocca una carta per segnarla (1 copia, versione base); toccala di nuovo per toglierla.':'Tocca una carta che ti manca per aggiungerla, o una che hai per vederne i dettagli. Attiva ⚡ per segnarle al volo.'}</p>
+  <div class="grid">${shown.map(e=>{const has=e.ids.some(i=>ids.has(i)),c=e.rep,p=prices(c,hasStd(c)?0:1).now;
+    return `<button class="tile${has?' has':''}" onclick="tileTap('${esc(e.num)}')">${c[9]?`<img src="${IMG(c,'low')}" alt="" loading="lazy" onerror="this.outerHTML='<span class=ph>${esc(e.num)}</span>'">`:`<span class="ph">${esc(e.num)}</span>`}
+     ${has?'<i class="ok">✓</i>':''}<span class="tn">${esc(e.num)}</span><span class="tp">${p?eur(p):''}</span></button>`}).join('')}</div>`;
+}
+function tileTap(num){
+  const s=buildSets(game).find(x=>x.key===setOpen),e=s.list.find(x=>x.num===num),c=e.rep;
+  const mine=coll.map((x,i)=>[x,i]).filter(([x])=>x.g===game&&e.ids.includes(x.id));
+  if(quick){
+    if(mine.length){const [x,i]=mine[mine.length-1];x.q--;if(x.q<=0)coll.splice(i,1);save();toast('Tolta ✓')}
+    else{const o={g:game,id:c[0],h:hasStd(c)?0:1,l:defLang(game,c),q:1};if(lastAlb&&albName(lastAlb))o.a=lastAlb;coll.push(o);save();toast('Segnata ✓')}
+    const y=scrollY;renderSetView();scrollTo(0,y);return;
+  }
+  if(mine.length)openCard(game,mine[0][0].id);else openAdd(game,c[0]);
+}
+
 /* ---------- HOME: PREZZI DELLE CARTE ---------- */
 const MOVERS={};
+let kind='cards';
+const inKind=c=>kind==='sealed'?c[7]===2:c[7]!==2;
 function movers(g){
-  if(MOVERS[g])return MOVERS[g];
-  const m=[];for(const c of DB[g].cards){const p=prices(c,0);if(p.now>=10&&p.d30>=10&&p.d7&&p.now/p.d7<1.5&&p.now/p.d7>0.67){m.push([pct(p.now,p.d30),c])}} // scarta le carte con prezzi troppo ballerini (poche vendite)
+  const K=g+kind;if(MOVERS[K])return MOVERS[K];
+  const m=[];for(const c of DB[g].cards){if(!inKind(c))continue;const p=prices(c,0);if(p.now>=10&&p.d30>=10&&p.d7&&p.now/p.d7<1.5&&p.now/p.d7>0.67){m.push([pct(p.now,p.d30),c])}} // scarta le carte con prezzi troppo ballerini (poche vendite)
   m.sort((a,b)=>b[0]-a[0]);
-  const top=[...DB[g].cards].sort((a,b)=>Math.max(b[PO]||0,b[PO+3]||0)-Math.max(a[PO]||0,a[PO+3]||0)).slice(0,8);
-  return MOVERS[g]={up:m.slice(0,8).map(x=>x[1]),down:m.slice(-8).reverse().map(x=>x[1]),top};
+  const top=DB[g].cards.filter(inKind).sort((a,b)=>Math.max(b[PO]||0,b[PO+3]||0)-Math.max(a[PO]||0,a[PO+3]||0)).slice(0,8);
+  return MOVERS[K]={up:m.slice(0,8).map(x=>x[1]),down:m.slice(-8).reverse().map(x=>x[1]),top};
 }
 function cardRow(g,c){
   const n=prices(c,0),h=hasHolo(c)?prices(c,1):null,main=n.now?n:h;
   return `<div class="item click" onclick="openCard('${g}',${c[0]})"><div class="stripe ${g}"></div>
     <div class="mid">${thumb(c)}<div><div class="name">${esc(c[1])}</div>
-    <div class="meta"><span class="tag">${esc(setLabel(g,c))}</span>${c[7]?'<span class="tag lang">Giapponese</span>':''}${tags(g,c)}</div>${itName(c)}
+    <div class="meta"><span class="tag">${esc(setLabel(g,c))}</span>${c[7]===1?'<span class="tag lang">Giapponese</span>':''}${tags(g,c)}</div>${itName(c)}
     ${n.now&&h?`<div class="meta">${GAMES[g].hl}: ${eur(h.now)}</div>`:''}</div></div>
     <div class="right"><div class="price">${eur(main.now)}</div><div class="sub">${deltaHTML(pct(main.now,main.d30),' 30 gg')}</div>
       <button class="plus" onclick="event.stopPropagation();openAdd('${g}',${c[0]})" aria-label="Aggiungi alla collezione">+</button></div></div>`;
@@ -476,7 +586,8 @@ function renderHome(){
   v.innerHTML=`
   <section class="intro"><h2>Prezzi delle carte</h2><p>Cerca qualsiasi carta e guarda come cambia il suo valore di mercato su Cardmarket, aggiornato ogni giorno.</p></section>
   <div class="games">${Object.keys(GAMES).map(g=>`<button class="${g}${g===game?' on':''}" onclick="setGame('${g}')">${GAMES[g].name}</button>`).join('')}</div>
-  <input id="q" class="search" type="search" placeholder="${game==='pk'?'Es. Charizard 151, Charizard MEW 199, Umbreon Evolving Skies…':'Es. Luffy OP05, Zoro Wings of the Captain, OP05-119…'}" value="${esc(query)}" autocomplete="off">
+  <div class="chips">${[['cards','🃏 Carte'],['sealed','📦 Prodotti sigillati']].map(([k,l])=>`<button class="chip${kind===k?' on':''}" onclick="kind='${k}';query='';renderHome()">${l}</button>`).join('')}</div>
+  <input id="q" class="search" type="search" placeholder="${kind==='sealed'?(game==='pk'?'Es. Display 151, Elite Trainer Box Prismatic…':'Es. Booster Box OP05, Display Romance Dawn…'):game==='pk'?'Es. Charizard 151, Charizard MEW 199, Umbreon Evolving Skies…':'Es. Luffy OP05, Zoro Wings of the Captain, OP05-119…'}" value="${esc(query)}" autocomplete="off">
   <div id="res"></div>`;
   const q=document.getElementById('q');
   q.addEventListener('input',()=>{query=q.value;clearTimeout(q._t);q._t=setTimeout(results,180)});
@@ -489,13 +600,15 @@ async function results(){
   const ws=words(query);
   if(!ws.length||query.trim().length<2){
     const m=movers(game);
-    r.innerHTML=`<p class="hint">${DB[game].cards.length.toLocaleString('it-IT')} carte ${GAMES[game].name} con prezzo Cardmarket. Scrivi il nome e, se vuoi, il nome del set, la sua sigla o il numero della carta.</p>
+    const tot=DB[game].cards.filter(inKind).length;
+    if(kind==='sealed'&&!tot){r.innerHTML='<p class="hint">I prodotti sigillati arrivano con il prossimo aggiornamento dei prezzi.</p>';return}
+    r.innerHTML=`<p class="hint">${tot.toLocaleString('it-IT')} ${kind==='sealed'?'prodotti sigillati':'carte'} ${GAMES[game].name} con prezzo Cardmarket. ${kind==='sealed'?'Cerca per nome del prodotto o del set (es. display, booster, elite trainer box).':'Scrivi il nome e, se vuoi, il nome del set, la sua sigla o il numero della carta.'}</p>
     <div class="sec"><h2>📈 In crescita</h2><span class="sub">ultimi 30 giorni · da 10 € in su</span></div><div class="list">${m.up.map(c=>cardRow(game,c)).join('')}</div>
     <div class="sec"><h2>📉 In calo</h2><span class="sub">ultimi 30 giorni · da 10 € in su</span></div><div class="list">${m.down.map(c=>cardRow(game,c)).join('')}</div>
     <div class="sec"><h2>💎 Le più preziose</h2></div><div class="list">${m.top.map(c=>cardRow(game,c)).join('')}</div>`;
     return;
   }
-  const hits=[];for(const c of DB[game].cards){if(ws.every(w=>hit(c,w)))hits.push(c)}
+  const hits=[];for(const c of DB[game].cards){if(inKind(c)&&ws.every(w=>hit(c,w)))hits.push(c)}
   hits.sort((a,b)=>Math.max(b[PO]||0,b[PO+3]||0)-Math.max(a[PO]||0,a[PO+3]||0));
   r.innerHTML=`<p class="hint">${hits.length.toLocaleString('it-IT')} risultati${hits.length>60?' · mostro i 60 più preziosi, aggiungi parole per restringere':''}. Tocca una carta per vedere l'andamento del prezzo.</p>
   <div class="list">${hits.slice(0,60).map(c=>cardRow(game,c)).join('')}</div>`;
@@ -505,7 +618,7 @@ async function results(){
 function openCard(g,id){const c=DB[g].byId.get(id);S={mode:'card',g,id,h:hasStd(c)?0:1};drawCard()}
 function drawCard(){
   const c=DB[S.g].byId.get(S.id),p=prices(c,S.h),own=coll.filter(x=>x.g===S.g&&x.id===S.id).reduce((s,x)=>s+x.q,0);
-  showSheet(`${bigImg(c,240)}<h3>${esc(c[1])}</h3><div class="meta"><span class="tag">${GAMES[S.g].name} · ${esc(setLabel(S.g,c))}</span>${c[7]?'<span class="tag lang">Giapponese</span>':''}${tags(S.g,c)}</div>${itName(c)}
+  showSheet(`${bigImg(c,240)}<h3>${esc(c[1])}</h3><div class="meta"><span class="tag">${GAMES[S.g].name} · ${esc(setLabel(S.g,c))}</span>${c[7]===1?'<span class="tag lang">Giapponese</span>':''}${tags(S.g,c)}</div>${itName(c)}
    ${hasStd(c)&&hasHolo(c)?`<label>Versione</label><div class="chips">${verChips(S.g,c,S.h,'cSetH')}</div>`:''}
    ${priceGrid(c,S.h)}
    <div class="note">Variazione in 30 giorni: ${deltaHTML(pct(p.now,p.d30))}</div>

@@ -130,6 +130,25 @@ def build_game(g, local_dir, tcgdex):
         if cnt[k] > 1:
             seen[k] += 1
             r[3] = seen[k]
+    # Prodotti sigillati (box, buste, ETB...): stessi prezzi del listino, nomi dal catalogo "nonsingles"
+    sealed = 0
+    try:
+        ns = fetch(f'{BASE}/productList/products_nonsingles_{gid}.json', local_dir)['products']
+    except Exception as e:
+        print('catalogo sigillati non disponibile:', e)
+        ns = []
+    for p in sorted(ns, key=lambda p: p['idProduct']):
+        q = guide.get(p['idProduct'])
+        if not q:
+            continue
+        n = [r2(q.get('trend')), r2(q.get('avg7')), r2(q.get('avg30'))]
+        if not n[0]:
+            continue
+        cat = re.sub(r'^(Pokémon|One Piece)\s+', '', p.get('categoryName') or 'Prodotto sigillato')
+        # colonna 7 = 2 indica un prodotto sigillato
+        rows.append([p['idProduct'], p['name'], cat, 0, '', '', '', 2, cat] + [''] + n)
+        sealed += 1
+    print(f'{g}: {sealed} prodotti sigillati')
     return date, rows
 
 
