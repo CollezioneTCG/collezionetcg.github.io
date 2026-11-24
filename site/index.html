@@ -93,7 +93,8 @@ footer{color:var(--muted);font-size:12px;margin-top:26px;line-height:1.5}
 .row{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:16px}
 .btn.full{width:100%;padding:13px;font-size:15px;text-align:center;display:block;text-decoration:none}
 .note{color:var(--muted);font-size:12px;margin-top:8px}
-.qty.big button{width:38px;height:38px;font-size:18px}
+.qty.lg{margin-top:0}
+.qty.lg button{width:38px;height:38px;font-size:18px}
 .info{background:none;border:1px solid var(--line);color:var(--muted);border-radius:50%;width:20px;height:20px;font-size:11px;padding:0;margin-left:4px;cursor:pointer;vertical-align:1px}
 .tag.own{background:#3a3016;color:var(--accent)}
 .own-row{display:flex;gap:6px;align-items:center}
@@ -426,7 +427,7 @@ function drawAdd(){
    ${c[7]===1?'<div class="note" style="margin-top:-6px">Questa carta esiste solo in versione giapponese.</div>':''}
    <label>Versione</label><div class="chips">${verChips(S.g,c,S.h,'aSetH')}</div>
    ${priceGrid(c,S.h)}
-   <div class="row"><span>Quantità</span><div class="qty big"><button onclick="aQ(-1)" aria-label="Meno">−</button><span>${S.q}</span><button onclick="aQ(1)" aria-label="Più">+</button></div></div>
+   <div class="row"><span>Quantità</span><div class="qty lg"><button onclick="aQ(-1)" aria-label="Meno">−</button><span>${S.q}</span><button onclick="aQ(1)" aria-label="Più">+</button></div></div>
    <label>Album</label><div class="chips">${albChips(S.a,'aSetA')}</div>
    <label>Prezzo pagato per copia (facoltativo)</label><input id="app" class="search" type="text" inputmode="decimal" placeholder="Es. 25,00" value="${S.pp!=null?String(S.pp).replace('.',','):''}" oninput="S.pp=this.value">
    <div style="margin-top:16px"><button class="btn full" onclick="confirmAdd()">Aggiungi${S.a?' in “'+esc(albName(S.a))+'”':' alla collezione'}</button></div>`);
@@ -452,7 +453,7 @@ function drawItem(){
    ${priceGrid(c,x.h)}
    <div class="note">Variazione in 30 giorni: ${deltaHTML(pct(p.now,p.d30))}</div>
    <div id="ichart" class="chart"></div>
-   <div class="row"><span>Copie possedute</span><div class="qty big"><button onclick="iQ(-1)" aria-label="Meno">−</button><span>${x.q}</span><button onclick="iQ(1)" aria-label="Più">+</button></div></div>
+   <div class="row"><span>Copie possedute</span><div class="qty lg"><button onclick="iQ(-1)" aria-label="Meno">−</button><span>${x.q}</span><button onclick="iQ(1)" aria-label="Più">+</button></div></div>
    <label>Prezzo pagato (per copia)</label>
    <div class="own-row"><input id="pp" class="search" type="text" inputmode="decimal" placeholder="Es. 25,00" value="${x.pp!=null?x.pp.toFixed(2).replace('.',','):''}"><button class="btn sm" onclick="setPP()">Salva</button>${x.pp!=null?'<button class="btn sm ghost" onclick="clearPP()">Cancella</button>':''}</div>
    ${x.pp!=null?(()=>{const v=(x.mp!=null?x.mp:(p.now||0)),d=(v-x.pp)*x.q;return `<div class="note">${d>=0?'Guadagno':'Perdita'}: <b class="${d>=0?'up':'down'}">${d>=0?'+':'−'}${eur(Math.abs(d))}</b>${x.pp?` (${((v-x.pp)/x.pp*100).toFixed(1).replace('.',',')}%)`:''} su ${x.q} cop${x.q===1?'ia':'ie'}</div>`})():'<div class="note">Facoltativo: serve a calcolare quanto hai guadagnato o perso.</div>'}
